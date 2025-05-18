@@ -34,6 +34,8 @@ import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.ui.Picture;
 import com.jme3.asset.AssetConfig;
+import com.jme3.audio.AudioNode;
+import com.jme3.audio.AudioData.DataType;
 
 
 
@@ -99,6 +101,16 @@ public class HorrorGameJME extends SimpleApplication implements ActionListener, 
         app.setSettings(settings);
 
         app.start();
+    }
+
+    private AudioNode gameMusic;
+    private void initAudio() {
+        // Create gameplay music (looped)
+        gameMusic = new AudioNode(assetManager, "Sounds/horror_music.ogg", DataType.Stream);
+        gameMusic.setLooping(true);
+        gameMusic.setVolume(1.0f);
+        gameMusic.setPositional(false); // Non-positional for background music
+        rootNode.attachChild(gameMusic);
     }
 
     @Override
@@ -286,6 +298,9 @@ public class HorrorGameJME extends SimpleApplication implements ActionListener, 
 
         // Initialize game
         initializeGame();
+
+        initAudio();
+        gameMusic.play();
     }
 
     private void initializeGame() {
