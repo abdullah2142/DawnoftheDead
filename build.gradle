@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 plugins {
     id 'java'
     id 'application'
@@ -33,4 +34,41 @@ dependencies {
 tasks.withType(JavaCompile).configureEach {
     // enable deprecation warnings
     options.compilerArgs << '-Xlint:deprecation'
+=======
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group 'com.yourname'
+version '1.0-SNAPSHOT'
+
+// Disable module system
+java {
+    modularity.inferModulePath = false
+}
+
+application {
+    mainClassName = 'horrorjme.HorrorGameJME'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.jmonkeyengine:jme3-core:3.5.2-stable'
+    implementation 'org.jmonkeyengine:jme3-desktop:3.5.2-stable'
+    implementation 'org.jmonkeyengine:jme3-lwjgl3:3.5.2-stable'
+    implementation 'org.jmonkeyengine:jme3-effects:3.5.2-stable'
+    // jME3 plugins for 3D model formats
+    implementation 'org.jmonkeyengine:jme3-plugins:3.5.2-stable'
+    implementation 'org.jmonkeyengine:jme3-jogg:3.5.2-stable'
+
+}
+
+tasks.withType(JavaCompile).configureEach {
+    // enable deprecation warnings
+    options.compilerArgs << '-Xlint:deprecation'
+>>>>>>> f7888a641fccee53dc488861e10b69254d4d2aa3
 }
