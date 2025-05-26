@@ -1,0 +1,358 @@
+package horrorjme;
+
+import com.jme3.app.SimpleApplication;
+import com.jme3.input.KeyInput;
+import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.AnalogListener;
+import com.jme3.input.controls.KeyTrigger;
+import com.jme3.material.Material;
+import com.jme3.math.ColorRGBA;
+import com.jme3.math.Vector3f;
+import com.jme3.scene.Geometry;
+import com.jme3.scene.Node;
+import com.jme3.scene.shape.Box;
+import com.jme3.light.DirectionalLight;
+import com.jme3.light.PointLight;
+import com.jme3.math.Quaternion;
+import com.jme3.renderer.RenderManager;
+import com.jme3.system.AppSettings;
+import com.jme3.math.FastMath;
+import com.jme3.post.FilterPostProcessor;
+import com.jme3.post.filters.FogFilter;
+import com.jme3.shadow.DirectionalLightShadowRenderer;
+import com.jme3.shadow.EdgeFilteringMode;
+import com.jme3.renderer.queue.RenderQueue;
+import com.jme3.material.RenderState;
+import com.jme3.renderer.Limits;
+
+
+/**
+ * A horror game implemented with JMonkeyEngine
+ */
+public class HorrorGameJME extends SimpleApplication implements ActionListener, AnalogListener {
+    // Game constants
+    private static final float MOVE_SPEED = 3f;
+    private static final float ROTATION_SPEED = 2f;
+
+    // Map data - 1 represents walls, 0 is empty space
+    private final int[][] mapData = {
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            {1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+            {1, 0, 0, 1, 1, 1, 1, 1, 0, 1}, // Changed (2,2) to 0 so player doesn't spawn in a wall
+            {1, 0, 1, 0, 0, 0, 0, 1, 0, 1},
+            {1, 0, 1, 0, 1, 1, 0, 1, 0, 1},
+            {1, 0, 1, 0, 0, 0, 0, 1, 0, 1},
+            {1, 0, 1, 1, 1, 1, 1, 1, 0, 1},
+            {1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+            {1, 1, 1, 1, 1, 1, 1, 1, 0, 1},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+    };
+
+    // Game state
+    private boolean torchOn = true;
+    private Node mapNode;
+    private PointLight torch;
+
+    // Movement flags
+    private boolean moveForward = false;
+    private boolean moveBackward = false;
+    private boolean strafeLeft = false;
+    private boolean strafeRight = false;
+    private boolean turnLeft = false;
+    private boolean turnRight = false;
+
+    public static void main(String[] args) {
+        HorrorGameJME app = new HorrorGameJME();
+
+        // Configure display settings
+        AppSettings settings = new AppSettings(true);
+        settings.setTitle("Dawn of The Dead - JMonkeyEngine");
+        settings.setResolution(1280, 720);
+        app.setSettings(settings);
+
+        app.start();
+    }
+
+    @Override
+    public void simpleInitApp() {
+        // Set up camera with proper near/far planes
+        cam.setLocation(new Vector3f(2.5f, 0.5f, 2.5f)); // Player starting position
+        cam.lookAt(new Vector3f(3.5f, 0.5f, 2.5f), Vector3f.UNIT_Y); // Looking in +X direction
+        cam.setFrustumPerspective(45f, (float)cam.getWidth() / cam.getHeight(), 0.1f, 1000f);
+
+        flyCam.setMoveSpeed(0); // Disable default camera movement
+        flyCam.setDragToRotate(false); // Enable FPS-style camera rotation
+
+        // Initialize input mappings
+        initInputs();
+
+        // Create the map
+        createMap();
+
+        // Set up lighting
+        setupLighting();
+
+        // Add fog effect for atmosphere
+        setupFog();
+
+        // Set anisotropic filter properly (must be at least 1)
+        if (renderer.getLimits().get(Limits.TextureAnisotropy) > 1) {
+            renderer.setDefaultAnisotropicFilter(4); // Use 4x anisotropic filtering
+        }
+    }
+
+    private void initInputs() {
+        // Register action mappings
+        inputManager.addMapping("MoveForward", new KeyTrigger(KeyInput.KEY_W));
+        inputManager.addMapping("MoveBackward", new KeyTrigger(KeyInput.KEY_S));
+        inputManager.addMapping("StrafeLeft", new KeyTrigger(KeyInput.KEY_A));
+        inputManager.addMapping("StrafeRight", new KeyTrigger(KeyInput.KEY_D));
+        inputManager.addMapping("TurnLeft", new KeyTrigger(KeyInput.KEY_LEFT));
+        inputManager.addMapping("TurnRight", new KeyTrigger(KeyInput.KEY_RIGHT));
+        inputManager.addMapping("ToggleTorch", new KeyTrigger(KeyInput.KEY_F));
+
+        // Add listeners
+        inputManager.addListener(this, "MoveForward", "MoveBackward", "StrafeLeft",
+                "StrafeRight", "TurnLeft", "TurnRight", "ToggleTorch");
+    }
+
+    private void createMap() {
+        mapNode = new Node("MapNode");
+        rootNode.attachChild(mapNode);
+
+        // Create floor with proper thickness and no overlapping
+        Box floorBox = new Box(5f, 0.05f, 5f); // Thinner floor
+        Geometry floor = new Geometry("Floor", floorBox);
+        Material floorMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        floorMat.setColor("Diffuse", ColorRGBA.DarkGray);
+        floorMat.setColor("Ambient", ColorRGBA.DarkGray);
+        floorMat.setBoolean("UseMaterialColors", true);
+        floor.setMaterial(floorMat);
+        floor.setLocalTranslation(5f, -0.05f, 5f); // Position at actual floor level
+        mapNode.attachChild(floor);
+
+        // Create ceiling
+        Box ceilingBox = new Box(5f, 0.05f, 5f);
+        Geometry ceiling = new Geometry("Ceiling", ceilingBox);
+        Material ceilingMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        ceilingMat.setColor("Diffuse", ColorRGBA.DarkGray.mult(0.5f));
+        ceilingMat.setColor("Ambient", ColorRGBA.DarkGray.mult(0.5f));
+        ceilingMat.setBoolean("UseMaterialColors", true);
+        ceiling.setMaterial(ceilingMat);
+        ceiling.setLocalTranslation(5f, 1.05f, 5f); // Position at ceiling level
+        mapNode.attachChild(ceiling);
+
+        // Create walls based on mapData with consistent height and no overlapping
+        for (int x = 0; x < mapData[0].length; x++) {
+            for (int z = 0; z < mapData.length; z++) {
+                if (mapData[z][x] == 1) {
+                    // This is a wall
+                    Box wallBox = new Box(0.5f, 0.55f, 0.5f); // Slightly taller than floor to ceiling distance
+                    Geometry wall = new Geometry("Wall_" + x + "_" + z, wallBox);
+                    Material wallMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+
+                    // Set wall color with proper lighting
+                    ColorRGBA randomColor = new ColorRGBA(FastMath.nextRandomFloat(),
+                            FastMath.nextRandomFloat(),
+                            FastMath.nextRandomFloat(),
+                            1f);
+                    wallMat.setColor("Diffuse", randomColor);
+                    wallMat.setColor("Ambient", randomColor.mult(0.3f));
+                    wallMat.setColor("Specular", ColorRGBA.White);
+                    wallMat.setFloat("Shininess", 256f);
+                    wallMat.setBoolean("UseMaterialColors", true);
+
+                    wall.setMaterial(wallMat);
+                    wall.setLocalTranslation(x + 0.5f, 0.5f, z + 0.5f); // Center wall vertically
+
+                    // Enable shadows for walls
+                    wall.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+
+                    mapNode.attachChild(wall);
+                }
+            }
+        }
+    }
+
+
+    private void setupLighting() {
+        // Add ambient light
+        DirectionalLight sun = new DirectionalLight();
+        sun.setDirection(new Vector3f(-0.5f, -0.5f, -0.5f).normalizeLocal());
+        sun.setColor(ColorRGBA.White.mult(0.3f)); // Slightly brighter ambient light
+        rootNode.addLight(sun);
+
+        // Add directional light shadow with proper configuration
+        DirectionalLightShadowRenderer dlsr = new DirectionalLightShadowRenderer(assetManager, 1024, 4); // Use 4 splits
+        dlsr.setLight(sun);
+        dlsr.setShadowIntensity(0.4f); // Soften shadows
+        dlsr.setEdgeFilteringMode(EdgeFilteringMode.PCF4); // Use PCF4 instead of PCF8
+        dlsr.setLambda(0.65f); // Set proper lambda value
+        viewPort.addProcessor(dlsr);
+
+        // Add player torch
+        torch = new PointLight();
+        torch.setPosition(cam.getLocation());
+        torch.setRadius(9f); // Slightly larger radius
+        torch.setColor(ColorRGBA.White.mult(3.5f));
+        rootNode.addLight(torch);
+
+        // Add a second directional light from opposite direction for better visibility
+        DirectionalLight fillLight = new DirectionalLight();
+        fillLight.setDirection(new Vector3f(0.5f, 0.3f, 0.5f).normalizeLocal());
+        fillLight.setColor(ColorRGBA.White.mult(0.15f)); // Dim fill light
+        rootNode.addLight(fillLight);
+    }
+
+    private void setupFog() {
+        FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
+        FogFilter fog = new FogFilter();
+        fog.setFogColor(new ColorRGBA(0, 0, 0, 1.0f));
+        fog.setFogDistance(7);
+        fog.setFogDensity(2.5f);
+        fpp.addFilter(fog);
+        viewPort.addProcessor(fpp);
+    }
+
+    @Override
+    public void simpleUpdate(float tpf) {
+        // Update torch position to match camera
+        if (torch != null) {
+            torch.setPosition(cam.getLocation());
+        }
+
+        // Handle movement
+        Vector3f camDir = cam.getDirection().clone().normalizeLocal();
+        Vector3f camLeft = cam.getLeft().clone().normalizeLocal();
+        camDir.y = 0; // Keep movement horizontal
+        camLeft.y = 0; // Keep movement horizontal
+
+        Vector3f walkDirection = new Vector3f(0, 0, 0);
+
+        if (moveForward) {
+            walkDirection.addLocal(camDir.mult(tpf * MOVE_SPEED));
+        }
+        if (moveBackward) {
+            walkDirection.addLocal(camDir.mult(-tpf * MOVE_SPEED));
+        }
+        if (strafeLeft) {
+            walkDirection.addLocal(camLeft.mult(tpf * MOVE_SPEED));
+        }
+        if (strafeRight) {
+            walkDirection.addLocal(camLeft.mult(-tpf * MOVE_SPEED));
+        }
+
+        // Apply rotation
+        if (turnLeft) {
+            rotateCamera(-ROTATION_SPEED * tpf);
+        }
+        if (turnRight) {
+            rotateCamera(ROTATION_SPEED * tpf);
+        }
+
+        // Move player if not colliding with walls
+        Vector3f newPosition = cam.getLocation().add(walkDirection);
+        if (!isColliding(newPosition)) {
+            cam.setLocation(newPosition);
+        } else {
+            // Try to slide along walls by separating x and z movement
+            Vector3f newPositionX = cam.getLocation().clone();
+            newPositionX.x += walkDirection.x;
+            if (!isColliding(newPositionX)) {
+                cam.setLocation(newPositionX);
+            }
+
+            Vector3f newPositionZ = cam.getLocation().clone();
+            newPositionZ.z += walkDirection.z;
+            if (!isColliding(newPositionZ)) {
+                cam.setLocation(newPositionZ);
+            }
+        }
+    }
+
+    private void rotateCamera(float angle) {
+        Quaternion rot = new Quaternion();
+        rot.fromAngleAxis(angle, Vector3f.UNIT_Y);
+        cam.setRotation(rot.mult(cam.getRotation()));
+    }
+
+    private boolean isColliding(Vector3f position) {
+        // Check if position is inside a wall
+        int mapX = (int)position.x;
+        int mapZ = (int)position.z;
+
+        // Add collision buffer
+        float buffer = 0.3f;
+
+        // Check collision at current position
+        if (mapX < 0 || mapX >= mapData[0].length || mapZ < 0 || mapZ >= mapData.length) {
+            return true; // Out of bounds
+        }
+        if (mapData[mapZ][mapX] == 1) {
+            return true; // Inside a wall
+        }
+
+        // Check collision with buffer
+        if (position.x - mapX < buffer) {
+            // Close to west wall
+            if (mapX > 0 && mapData[mapZ][mapX - 1] == 1) {
+                return true;
+            }
+        }
+        if (mapX + 1 - position.x < buffer) {
+            // Close to east wall
+            if (mapX < mapData[0].length - 1 && mapData[mapZ][mapX + 1] == 1) {
+                return true;
+            }
+        }
+        if (position.z - mapZ < buffer) {
+            // Close to north wall
+            if (mapZ > 0 && mapData[mapZ - 1][mapX] == 1) {
+                return true;
+            }
+        }
+        if (mapZ + 1 - position.z < buffer) {
+            // Close to south wall
+            if (mapZ < mapData.length - 1 && mapData[mapZ + 1][mapX] == 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public void onAction(String name, boolean isPressed, float tpf) {
+        if (name.equals("MoveForward")) {
+            moveForward = isPressed;
+        } else if (name.equals("MoveBackward")) {
+            moveBackward = isPressed;
+        } else if (name.equals("StrafeLeft")) {
+            strafeLeft = isPressed;
+        } else if (name.equals("StrafeRight")) {
+            strafeRight = isPressed;
+        } else if (name.equals("TurnLeft")) {
+            turnLeft = isPressed;
+        } else if (name.equals("TurnRight")) {
+            turnRight = isPressed;
+        } else if (name.equals("ToggleTorch") && !isPressed) {
+            // Toggle on release
+            torchOn = !torchOn;
+            if (torchOn) {
+                rootNode.addLight(torch);
+            } else {
+                rootNode.removeLight(torch);
+            }
+        }
+    }
+
+    @Override
+    public void onAnalog(String name, float value, float tpf) {
+        // Not needed for this implementation
+    }
+
+    @Override
+    public void simpleRender(RenderManager rm) {
+        // Additional rendering if needed
+    }
+}
