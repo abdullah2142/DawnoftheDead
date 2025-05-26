@@ -1,55 +1,20 @@
-<<<<<<< HEAD
 plugins {
     id 'java'
     id 'application'
 }
 
-group 'com.yourname'
+group 'com.horrorjme'
 version '1.0-SNAPSHOT'
 
-// Disable module system
+// Java version compatibility
 java {
-    modularity.inferModulePath = true
-}
-
-application {
-    mainClassName = 'horrorjme.HorrorGameJME'
-}
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    implementation 'org.jmonkeyengine:jme3-core:3.5.2-stable'
-    implementation 'org.jmonkeyengine:jme3-desktop:3.5.2-stable'
-    implementation 'org.jmonkeyengine:jme3-lwjgl3:3.5.2-stable'
-    implementation 'org.jmonkeyengine:jme3-effects:3.5.2-stable'
-    // jME3 plugins for 3D model formats
-    implementation 'org.jmonkeyengine:jme3-plugins:3.5.2-stable'
-    implementation 'org.jmonkeyengine:jme3-jogg:3.5.2-stable'
-
-}
-
-tasks.withType(JavaCompile).configureEach {
-    // enable deprecation warnings
-    options.compilerArgs << '-Xlint:deprecation'
-=======
-plugins {
-    id 'java'
-    id 'application'
-}
-
-group 'com.yourname'
-version '1.0-SNAPSHOT'
-
-// Disable module system
-java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
     modularity.inferModulePath = false
 }
 
 application {
-    mainClassName = 'horrorjme.HorrorGameJME'
+    mainClass = 'horrorjme.HorrorGameJME'
 }
 
 repositories {
@@ -57,18 +22,45 @@ repositories {
 }
 
 dependencies {
+    // JMonkeyEngine Core
     implementation 'org.jmonkeyengine:jme3-core:3.5.2-stable'
     implementation 'org.jmonkeyengine:jme3-desktop:3.5.2-stable'
     implementation 'org.jmonkeyengine:jme3-lwjgl3:3.5.2-stable'
+
+    // JMonkeyEngine Effects and Plugins
     implementation 'org.jmonkeyengine:jme3-effects:3.5.2-stable'
-    // jME3 plugins for 3D model formats
     implementation 'org.jmonkeyengine:jme3-plugins:3.5.2-stable'
+
+    // Audio support
     implementation 'org.jmonkeyengine:jme3-jogg:3.5.2-stable'
 
+    // Optional: Terrain and networking if needed
+     implementation 'org.jmonkeyengine:jme3-terrain:3.5.2-stable'
+     implementation 'org.jmonkeyengine:jme3-networking:3.5.2-stable'
 }
 
 tasks.withType(JavaCompile).configureEach {
-    // enable deprecation warnings
+    // Enable deprecation warnings
     options.compilerArgs << '-Xlint:deprecation'
->>>>>>> f7888a641fccee53dc488861e10b69254d4d2aa3
+    options.encoding = 'UTF-8'
+}
+
+// Configure the run task
+run {
+    // JVM arguments for better performance
+    jvmArgs = [
+            '-Xms512m',
+            '-Xmx1024m'
+    ]
+}
+
+// Create a fat JAR with all dependencies
+jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes 'Main-Class': 'horrorjme.HorrorGameJME'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
 }
