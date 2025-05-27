@@ -13,6 +13,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.shadow.DirectionalLightShadowRenderer;
 import com.jme3.shadow.EdgeFilteringMode;
@@ -36,18 +37,69 @@ public class HorrorGameJME extends SimpleApplication {
     // Game world
     private Node mapNode;
 
+    private DebugNoclipControl debugNoclip;
+
     // Map data - 1 represents walls, 0 is empty space
     private final int[][] mapData = {
-            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-            {1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-            {1, 0, 0, 1, 1, 1, 1, 1, 0, 1},
-            {1, 0, 1, 0, 0, 0, 0, 1, 0, 1},
-            {1, 0, 1, 0, 1, 1, 0, 1, 0, 1},
-            {1, 0, 1, 0, 0, 0, 0, 1, 0, 1},
-            {1, 0, 1, 1, 1, 1, 1, 1, 0, 1},
-            {1, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-            {1, 1, 1, 1, 1, 1, 1, 1, 0, 1},
-            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+            // Row 0 (top)
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+
+            // Row 1
+            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+
+            // Row 2
+            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+
+            // Row 3
+            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+
+            // Row 4 - Upper room with pillars
+            {1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1},
+
+            // Row 5
+            {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
+
+            // Row 6
+            {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
+
+            // Row 7 - Room with pillars
+            {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1},
+
+            // Row 8
+            {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
+
+            // Row 9 - Door opening (right side)
+            {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+
+            // Row 10 - Horizontal corridor
+            {1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1},
+
+            // Row 11 - Open area
+            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+
+            // Row 12
+            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+
+            // Row 13 - Lower corridor start
+            {1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+
+            // Row 14
+            {1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+
+            // Row 15
+            {1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+
+            // Row 16
+            {1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+
+            // Row 17 - Door on left
+            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
+
+            // Row 18 - Starting area (P = player start position)
+            {1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1},
+
+            // Row 19 (bottom)
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
     };
 
     public static void main(String[] args) {
@@ -62,7 +114,6 @@ public class HorrorGameJME extends SimpleApplication {
         app.start();
     }
 
-    // In your HorrorGameJME.java file, update the simpleInitApp() method:
 
     @Override
     public void simpleInitApp() {
@@ -71,6 +122,7 @@ public class HorrorGameJME extends SimpleApplication {
         optionsManager = new OptionsManager();
         audioManager = new AudioManager(assetManager, rootNode);
         entityManager = new EntityManager(rootNode);
+        debugNoclip = new DebugNoclipControl(cam, inputManager);
 
         // ADD THIS LINE - Initialize HUD Manager
         hudManager = new HUDManager(assetManager, guiNode, settings);
@@ -180,7 +232,10 @@ public class HorrorGameJME extends SimpleApplication {
      * Initialize the game world
      */
     private void initializeGameWorld() {
-        createMap();
+        //createMap();
+        Spatial doomMap = assetManager.loadModel("Models/DOOM2_MAP01.obj");
+        doomMap.scale(0.1f); // Adjust scale
+        rootNode.attachChild(doomMap);
         setupLighting();
         setupFog();
 
@@ -262,7 +317,7 @@ public class HorrorGameJME extends SimpleApplication {
         // Add ambient light
         DirectionalLight sun = new DirectionalLight();
         sun.setDirection(new Vector3f(-0.5f, -0.5f, -0.5f).normalizeLocal());
-        sun.setColor(ColorRGBA.White.mult(0.3f));
+        sun.setColor(ColorRGBA.White.mult(2.3f));
         rootNode.addLight(sun);
 
         // Add directional light shadow
@@ -317,11 +372,11 @@ public class HorrorGameJME extends SimpleApplication {
 
     @Override
     public void simpleUpdate(float tpf) {
+        debugNoclip.update(tpf);
         // Only update game logic when playing
         if (stateManager.getCurrentState() == GameStateManager.GameState.PLAYING) {
-            if (player != null) {
+            if (player != null && !debugNoclip.isEnabled()) {
                 player.update(tpf);
-                // Update HUD
                 hudManager.updateHUD(player);
             }
 

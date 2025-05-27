@@ -82,12 +82,12 @@ public class Player{
         torch.setDirection(camera.getDirection());
 
         // Configure flashlight properties
-        torch.setSpotRange(15f);
+        torch.setSpotRange(25f);
         torch.setSpotInnerAngle(12f * FastMath.DEG_TO_RAD);
         torch.setSpotOuterAngle(25f * FastMath.DEG_TO_RAD);
 
         // Light intensity and color
-        torch.setColor(ColorRGBA.White.mult(4.0f));
+        torch.setColor(ColorRGBA.White.mult(25.0f));
 
         rootNode.addLight(torch);
     }
