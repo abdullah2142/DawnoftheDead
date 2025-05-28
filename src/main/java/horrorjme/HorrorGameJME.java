@@ -1,32 +1,32 @@
 package horrorjme;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.bullet.BulletAppState;
+import com.jme3.bullet.collision.shapes.CollisionShape;
+import com.jme3.bullet.collision.shapes.CapsuleCollisionShape;
+import com.jme3.bullet.control.CharacterControl;
+import com.jme3.bullet.control.RigidBodyControl;
+import com.jme3.bullet.util.CollisionShapeFactory;
+import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
-import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
-import com.jme3.post.FilterPostProcessor;
-import com.jme3.post.filters.FogFilter;
-import com.jme3.renderer.Limits;
 import com.jme3.renderer.RenderManager;
-import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
-import com.jme3.shadow.DirectionalLightShadowRenderer;
-import com.jme3.shadow.EdgeFilteringMode;
 import com.jme3.system.AppSettings;
 
 /**
- * Refactored Horror Game using clean architecture
+ * Horror Game with smooth movement and DOOM map loading
  */
 public class HorrorGameJME extends SimpleApplication {
 
     // Core managers
-    private GameStateManager stateManager;
+    private GameStateManager gameStateManager;
     private InputHandler inputHandler;
     private MenuSystem menuSystem;
     private OptionsManager optionsManager;
@@ -35,153 +35,356 @@ public class HorrorGameJME extends SimpleApplication {
     private Player player;
     private HUDManager hudManager;
 
-    // Game world
-    private Node mapNode;
+    // Physics
+    private BulletAppState bulletAppState;
+    private CharacterControl playerControl;
+    private RigidBodyControl landscapeControl;
 
+    // Game world
+    private Spatial doomMap;
     private DebugNoclipControl debugNoclip;
 
-    // Map data - 1 represents walls, 0 is empty space
-    private final int[][] mapData = {
-            // Row 0 (top)
-            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-
-            // Row 1
-            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-
-            // Row 2
-            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-
-            // Row 3
-            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-
-            // Row 4 - Upper room with pillars
-            {1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1},
-
-            // Row 5
-            {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-
-            // Row 6
-            {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-
-            // Row 7 - Room with pillars
-            {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-
-            // Row 8
-            {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-
-            // Row 9 - Door opening (right side)
-            {1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-
-            // Row 10 - Horizontal corridor
-            {1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1},
-
-            // Row 11 - Open area
-            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-
-            // Row 12
-            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-
-            // Row 13 - Lower corridor start
-            {1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-
-            // Row 14
-            {1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
-
-            // Row 15
-            {1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
-
-            // Row 16
-            {1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
-
-            // Row 17 - Door on left
-            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1},
-
-            // Row 18 - Starting area (P = player start position)
-            {1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1},
-
-            // Row 19 (bottom)
-            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
-    };
+    // SMOOTH MOVEMENT SETTINGS
+    private static final float MAP_SCALE = 0.055f;  // Smaller scale for DOOM map
+    private static final Vector3f PLAYER_START_POS = new Vector3f(10f, 150f, 20f);
+    private static final float MOVE_SPEED = 8f;     // Smooth movement speed
+    private static final float MOUSE_SENSITIVITY = 0.5f; // Lower mouse sensitivity
 
     public static void main(String[] args) {
         HorrorGameJME app = new HorrorGameJME();
 
-        // Configure display settings
         AppSettings settings = new AppSettings(true);
-        settings.setTitle("Dawn of The Dead - JMonkeyEngine");
+        settings.setTitle("Dawn of The Dead - DOOM Map + Smooth Movement");
         settings.setResolution(1280, 720);
+        settings.setVSync(true); // Enable VSync for smoother movement
         app.setSettings(settings);
 
         app.start();
     }
 
-
     @Override
     public void simpleInitApp() {
-        // Initialize core managers
-        stateManager = new GameStateManager();
+        System.out.println("=== INITIALIZING HORROR GAME WITH DOOM MAP ===");
+
+        // Initialize physics (without debug for cleaner view)
+        initializePhysics();
+
+        // Setup lighting (keep the working lighting)
+        setupProperLighting();
+
+        // Initialize managers
+        initializeManagers();
+
+        // Setup camera and input with smooth settings
+        setupCameraAndInput();
+
+        // Show menu
+        showMainMenu();
+
+        System.out.println("=== INITIALIZATION COMPLETE ===");
+    }
+
+    private void initializePhysics() {
+        System.out.println("Setting up physics...");
+
+        bulletAppState = new BulletAppState();
+        // Disable debug for cleaner view (can re-enable with F2 if needed)
+        bulletAppState.setDebugEnabled(false);
+        stateManager.attach(bulletAppState);
+
+        System.out.println("Physics initialized");
+    }
+
+    private void setupProperLighting() {
+        System.out.println("Setting up lighting for DOOM map...");
+
+        // Clear existing lights
+        rootNode.getLocalLightList().clear();
+
+        // Ambient light for DOOM map visibility
+        AmbientLight ambient = new AmbientLight();
+        ambient.setColor(ColorRGBA.White.mult(0.4f)); // Dimmer for horror atmosphere
+        rootNode.addLight(ambient);
+
+        // Main directional light
+        DirectionalLight sun = new DirectionalLight();
+        sun.setDirection(new Vector3f(-0.5f, -0.5f, -0.5f).normalizeLocal());
+        sun.setColor(ColorRGBA.White.mult(0.8f)); // Dimmer for atmosphere
+        rootNode.addLight(sun);
+
+        // Fill light
+        DirectionalLight fill = new DirectionalLight();
+        fill.setDirection(new Vector3f(0.5f, -0.3f, 0.5f).normalizeLocal());
+        fill.setColor(ColorRGBA.White.mult(0.3f));
+        rootNode.addLight(fill);
+
+        System.out.println("Atmospheric lighting setup complete");
+    }
+
+    private void initializeManagers() {
+        System.out.println("Initializing game managers...");
+
+        gameStateManager = new GameStateManager();
         optionsManager = new OptionsManager();
         audioManager = new AudioManager(assetManager, rootNode);
         entityManager = new EntityManager(rootNode);
+        hudManager = new HUDManager(assetManager, guiNode, settings);
         debugNoclip = new DebugNoclipControl(cam, inputManager);
 
-        // ADD THIS LINE - Initialize HUD Manager
-        hudManager = new HUDManager(assetManager, guiNode, settings);
-
-        // Initialize input handler
-        inputHandler = new InputHandler(inputManager, stateManager, this);
-
-        // Initialize menu system
-        menuSystem = new MenuSystem(assetManager, guiNode, settings, stateManager, this, optionsManager);
-        inputHandler.setMenuSystem(menuSystem);
-
-        // Setup camera for better perspective
-        cam.setFrustumPerspective(45f, (float)cam.getWidth() / cam.getHeight(), 0.1f, 1000f);
-        flyCam.setMoveSpeed(0);
-        flyCam.setDragToRotate(false);
-
-        // Load audio with improved error handling
+        // Initialize audio
         try {
             audioManager.initializeHorrorSounds();
         } catch (Exception e) {
-            System.err.println("Failed to initialize audio, using minimal setup: " + e.getMessage());
+            System.err.println("Audio initialization failed: " + e.getMessage());
             audioManager.initializeMinimalAudio();
         }
 
-        // Show main menu
+        System.out.println("Managers initialized");
+    }
+
+    private void setupCameraAndInput() {
+        System.out.println("Setting up smooth camera and input...");
+
+        // Setup camera with better settings
+        cam.setFrustumPerspective(75f, (float)cam.getWidth() / cam.getHeight(), 0.1f, 500f);
+
+        // Disable flyCam
+        flyCam.setEnabled(false);
+
+        // Initialize input handler with smooth movement
+        inputHandler = new InputHandler(inputManager, gameStateManager, this);
+
+        // Configure smooth movement settings
+        inputHandler.setMoveSpeed(MOVE_SPEED);
+        inputHandler.setMouseSensitivity(MOUSE_SENSITIVITY);
+
+        menuSystem = new MenuSystem(assetManager, guiNode, settings, gameStateManager, this, optionsManager);
+        inputHandler.setMenuSystem(menuSystem);
+
+        System.out.println("Smooth camera and input setup complete");
+    }
+
+    private void showMainMenu() {
+        System.out.println("Showing main menu...");
         menuSystem.showMainMenu();
         inputHandler.disableMouseLook();
+    }
 
-        System.out.println("Game initialized successfully!");
+    public void startGame() {
+        System.out.println("=== STARTING GAME WITH DOOM MAP ===");
+
+        gameStateManager.setState(GameStateManager.GameState.PLAYING);
+        menuSystem.hide();
+
+        // Load DOOM map
+        loadDoomMap();
+
+        // Create smooth physics player
+        createSmoothPhysicsPlayer();
+
+        // Setup player systems
+        setupPlayerSystems();
+
+        // Final setup
+        finishGameStart();
+
+        System.out.println("=== DOOM MAP LOADED - GAME STARTED ===");
     }
 
     /**
-     * Start a new game
+     * Load the actual DOOM map with proper scaling and materials
      */
-// In HorrorGameJME.java, update the startGame() method:
-    public void startGame() {
-        stateManager.setState(GameStateManager.GameState.PLAYING);
+    private void loadDoomMap() {
+        System.out.println("Loading DOOM2_MAP01.obj...");
 
-        // Hide menu
-        menuSystem.hide();
+        try {
+            // Load the DOOM map
+            doomMap = assetManager.loadModel("Models/DOOM2_MAP01.obj");
 
-        // Initialize game world
-        initializeGameWorld();
+            if (doomMap == null) {
+                throw new RuntimeException("DOOM map file not found at Models/DOOM2_MAP01.obj");
+            }
 
-        // Create player - NOW PASS AudioManager
-        player = new Player(cam, rootNode, mapData, audioManager);
+            // Scale the map appropriately
+            doomMap.scale(MAP_SCALE);
+            System.out.println("DOOM map scaled by: " + MAP_SCALE);
+
+            // Apply proper materials to all geometries
+            applyDoomMapMaterials();
+
+            // Create collision shape for the DOOM map
+            System.out.println("Creating collision shape for DOOM map...");
+            CollisionShape mapCollisionShape = CollisionShapeFactory.createMeshShape(doomMap);
+
+            // Create physics control
+            landscapeControl = new RigidBodyControl(mapCollisionShape, 0);
+            doomMap.addControl(landscapeControl);
+
+            // Add to scene and physics
+            rootNode.attachChild(doomMap);
+            bulletAppState.getPhysicsSpace().add(landscapeControl);
+
+            System.out.println("DOOM map loaded successfully!");
+
+        } catch (Exception e) {
+            System.err.println("Failed to load DOOM map: " + e.getMessage());
+            e.printStackTrace();
+            System.out.println("Creating fallback map...");
+            createMinimalFallbackMap();
+        }
+    }
+
+    /**
+     * Apply proper materials to DOOM map geometries
+     */
+    private void applyDoomMapMaterials() {
+        System.out.println("Applying materials to DOOM map...");
+
+        doomMap.depthFirstTraversal(spatial -> {
+            if (spatial instanceof Geometry) {
+                Geometry geom = (Geometry) spatial;
+                Material mat = geom.getMaterial();
+
+                if (mat == null) {
+                    // Create new material if none exists
+                    mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+                    mat.setColor("Diffuse", ColorRGBA.Gray);
+                    mat.setColor("Ambient", ColorRGBA.Gray.mult(0.3f));
+                    mat.setBoolean("UseMaterialColors", true);
+                    geom.setMaterial(mat);
+                } else {
+                    // Ensure existing material works with lighting
+                    if (mat.getMaterialDef().getName().contains("Unshaded")) {
+                        // Convert unshaded to lit material
+                        Material newMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+
+                        // Try to preserve diffuse color/texture
+                        if (mat.getParam("ColorMap") != null) {
+                            newMat.setTexture("DiffuseMap", mat.getParamValue("ColorMap"));
+                        } else if (mat.getParam("Color") != null) {
+                            ColorRGBA color = (ColorRGBA) mat.getParamValue("Color");
+                            newMat.setColor("Diffuse", color);
+                            newMat.setColor("Ambient", color.mult(0.3f));
+                        } else {
+                            newMat.setColor("Diffuse", ColorRGBA.Gray);
+                            newMat.setColor("Ambient", ColorRGBA.Gray.mult(0.3f));
+                        }
+
+                        newMat.setBoolean("UseMaterialColors", true);
+                        geom.setMaterial(newMat);
+                    }
+
+                    // Handle alpha blending if needed
+                    if (mat.getAdditionalRenderState().getBlendMode() == RenderState.BlendMode.Off) {
+                        mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+                        mat.setFloat("AlphaDiscardThreshold", 0.1f);
+                    }
+                }
+            }
+        });
+
+        System.out.println("DOOM map materials applied");
+    }
+
+    /**
+     * Create a minimal fallback if DOOM map fails
+     */
+    private void createMinimalFallbackMap() {
+        System.out.println("Creating minimal fallback map...");
+
+        Node fallbackMap = new Node("FallbackMap");
+
+        // Simple floor
+        Box floorBox = new Box(50f, 1f, 50f);
+        Geometry floor = new Geometry("Floor", floorBox);
+        Material floorMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        floorMat.setColor("Diffuse", ColorRGBA.Brown);
+        floorMat.setColor("Ambient", ColorRGBA.Brown.mult(0.3f));
+        floorMat.setBoolean("UseMaterialColors", true);
+        floor.setMaterial(floorMat);
+        floor.setLocalTranslation(0, -1f, 0);
+        fallbackMap.attachChild(floor);
+
+        // A few walls for testing
+        for (int i = 0; i < 2; i++) {
+            Box wallBox = new Box(1f, 10f, 30f);
+            Geometry wall = new Geometry("Wall" + i, wallBox);
+            Material wallMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+            wallMat.setColor("Diffuse", i == 0 ? ColorRGBA.Red : ColorRGBA.Blue);
+            wallMat.setColor("Ambient", (i == 0 ? ColorRGBA.Red : ColorRGBA.Blue).mult(0.3f));
+            wallMat.setBoolean("UseMaterialColors", true);
+            wall.setMaterial(wallMat);
+            wall.setLocalTranslation((i * 40f) - 20f, 10f, 20f);
+            fallbackMap.attachChild(wall);
+        }
+
+        // Add physics
+        CollisionShape mapShape = CollisionShapeFactory.createMeshShape(fallbackMap);
+        landscapeControl = new RigidBodyControl(mapShape, 0);
+        fallbackMap.addControl(landscapeControl);
+
+        rootNode.attachChild(fallbackMap);
+        bulletAppState.getPhysicsSpace().add(landscapeControl);
+        doomMap = fallbackMap;
+
+        System.out.println("Fallback map created");
+    }
+
+    /**
+     * Create physics player with smooth movement settings
+     */
+    private void createSmoothPhysicsPlayer() {
+        System.out.println("Creating smooth physics player...");
+
+        // Create smaller capsule for better movement
+        CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(0.3f, 1.4f, 1);
+
+        // Create CharacterControl with smooth settings
+        playerControl = new CharacterControl(capsuleShape, 0.01f); // Lower step height
+
+        // Configure smooth physics
+        playerControl.setJumpSpeed(15);      // Lower jump
+        playerControl.setFallSpeed(25);      // Slower fall
+        playerControl.setGravity(65);        // Lower gravity
+        //playerControl.setPhysicsDamping(0.9f); // Add damping for smoother movement
+
+        // Set starting position
+        Vector3f startPos = PLAYER_START_POS.mult(MAP_SCALE); // Scale with map
+        playerControl.setPhysicsLocation(startPos);
+
+        // Add to physics space
+        bulletAppState.getPhysicsSpace().add(playerControl);
+
+        // Position camera smoothly
+        cam.setLocation(startPos.add(0, 0.8f * MAP_SCALE, 0)); // Scale camera offset
+
+        System.out.println("Smooth physics player created at: " + startPos);
+    }
+
+    private void setupPlayerSystems() {
+        System.out.println("Setting up player systems...");
+
+        // Create regular player for torch and other features
+        player = new Player(cam, rootNode, null, audioManager);
+        player.setMouseSensitivity(MOUSE_SENSITIVITY); // Set smooth mouse sensitivity
+
         inputHandler.setPlayer(player);
-
-        // IMPORTANT: Set player reference in noclip control for position syncing
+        inputHandler.setPlayerControl(playerControl);
         debugNoclip.setPlayer(player);
 
         // Apply options
         optionsManager.applySettings(player, audioManager);
 
+        System.out.println("Player systems setup complete");
+    }
+
+    private void finishGameStart() {
+        System.out.println("Finishing game start...");
+
         // Enable mouse look
         inputHandler.enableMouseLook();
 
-        //Show HUD when game starts
+        // Show HUD
         hudManager.show();
 
         // Start background music
@@ -189,208 +392,84 @@ public class HorrorGameJME extends SimpleApplication {
             audioManager.playBackgroundMusic("horror_ambient");
         }
 
-        System.out.println("Game started!");
+        System.out.println("Game start complete - DOOM map should be visible!");
     }
-    /**
-     * Pause the game
-     */
+
+    // Game state management methods
     public void pauseGame() {
-        if (stateManager.getCurrentState() == GameStateManager.GameState.PLAYING) {
+        if (gameStateManager.getCurrentState() == GameStateManager.GameState.PLAYING) {
             inputHandler.disableMouseLook();
             audioManager.pauseBackgroundMusic();
             menuSystem.showPauseMenu();
         }
     }
 
-    /**
-     * Resume the game
-     */
     public void resumeGame() {
-        if (stateManager.getCurrentState() == GameStateManager.GameState.PAUSED) {
-            stateManager.setState(GameStateManager.GameState.PLAYING);
+        if (gameStateManager.getCurrentState() == GameStateManager.GameState.PAUSED) {
+            gameStateManager.setState(GameStateManager.GameState.PLAYING);
             menuSystem.hide();
             inputHandler.enableMouseLook();
             audioManager.resumeBackgroundMusic();
         }
     }
 
-    /**
-     * Return to main menu
-     */
     public void returnToMainMenu() {
-        // Cleanup current game
         cleanupGame();
-
-        // Show main menu
         menuSystem.showMainMenu();
         inputHandler.disableMouseLook();
-
-        // Stop game music, could start menu music here
         audioManager.stopBackgroundMusic();
-        //Hide HUD when returning to menu
         hudManager.hide();
-
     }
 
-    /**
-     * Initialize the game world
-     */
-    private void initializeGameWorld() {
-        //createMap();
-        Spatial doomMap = assetManager.loadModel("Models/DOOM2_MAP01.j3o");
-        doomMap.scale(0.1f); // Adjust scale
-        doomMap.depthFirstTraversal(spatial -> {
-            if (spatial instanceof Geometry) {
-                Material mat = ((Geometry) spatial).getMaterial();
-                if (mat != null) {
-                    mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
-                    mat.setFloat("AlphaDiscardThreshold", 0.1f);
-                }
-            }
-        });
-        rootNode.attachChild(doomMap);
-        setupLighting();
-        setupFog();
-
-       // Enable anisotropic filtering if available
-
-    }
-
-    /**
-     * Create the game map
-     */
-    private void createMap() {
-        mapNode = new Node("MapNode");
-        rootNode.attachChild(mapNode);
-
-        // Create floor
-        Box floorBox = new Box(5f, 0.05f, 5f);
-        Geometry floor = new Geometry("Floor", floorBox);
-        Material floorMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-        floorMat.setColor("Diffuse", ColorRGBA.DarkGray);
-        floorMat.setColor("Ambient", ColorRGBA.DarkGray);
-        floorMat.setBoolean("UseMaterialColors", true);
-        floor.setMaterial(floorMat);
-        floor.setLocalTranslation(5f, -0.05f, 5f);
-        mapNode.attachChild(floor);
-
-        // Create ceiling
-        Box ceilingBox = new Box(5f, 0.05f, 5f);
-        Geometry ceiling = new Geometry("Ceiling", ceilingBox);
-        Material ceilingMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-        ceilingMat.setColor("Diffuse", ColorRGBA.DarkGray.mult(0.5f));
-        ceilingMat.setColor("Ambient", ColorRGBA.DarkGray.mult(0.5f));
-        ceilingMat.setBoolean("UseMaterialColors", true);
-        ceiling.setMaterial(ceilingMat);
-        ceiling.setLocalTranslation(5f, 1.05f, 5f);
-        mapNode.attachChild(ceiling);
-
-        // Create walls
-        for (int x = 0; x < mapData[0].length; x++) {
-            for (int z = 0; z < mapData.length; z++) {
-                if (mapData[z][x] == 1) {
-                    createWall(x, z);
-                }
-            }
-        }
-    }
-
-    /**
-     * Create a single wall segment
-     */
-    private void createWall(int x, int z) {
-        Box wallBox = new Box(0.5f, 0.55f, 0.5f);
-        Geometry wall = new Geometry("Wall_" + x + "_" + z, wallBox);
-        Material wallMat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-
-        ColorRGBA randomColor = new ColorRGBA(
-                FastMath.nextRandomFloat(),
-                FastMath.nextRandomFloat(),
-                FastMath.nextRandomFloat(),
-                1f
-        );
-        wallMat.setColor("Diffuse", randomColor);
-        wallMat.setColor("Ambient", randomColor.mult(0.3f));
-        wallMat.setColor("Specular", ColorRGBA.White);
-        wallMat.setFloat("Shininess", 256f);
-        wallMat.setBoolean("UseMaterialColors", true);
-
-        wall.setMaterial(wallMat);
-        wall.setLocalTranslation(x + 0.5f, 0.5f, z + 0.5f);
-        wall.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
-        mapNode.attachChild(wall);
-    }
-
-    /**
-     * Setup lighting for the scene
-     */
-    private void setupLighting() {
-        // Add ambient light
-        DirectionalLight sun = new DirectionalLight();
-        sun.setDirection(new Vector3f(-0.5f, -0.5f, -0.5f).normalizeLocal());
-        sun.setColor(ColorRGBA.White.mult(2.3f));
-        rootNode.addLight(sun);
-
-        // Add directional light shadow
-        DirectionalLightShadowRenderer dlsr = new DirectionalLightShadowRenderer(assetManager, 1024, 4);
-        dlsr.setLight(sun);
-        dlsr.setShadowIntensity(0.4f);
-        dlsr.setEdgeFilteringMode(EdgeFilteringMode.PCF4);
-        dlsr.setLambda(0.65f);
-        viewPort.addProcessor(dlsr);
-
-        // Add fill light
-        DirectionalLight fillLight = new DirectionalLight();
-        fillLight.setDirection(new Vector3f(0.5f, 0.3f, 0.5f).normalizeLocal());
-        fillLight.setColor(ColorRGBA.White.mult(0.15f));
-        rootNode.addLight(fillLight);
-    }
-
-    /**
-     * Setup fog effect
-     */
-    private void setupFog() {
-        FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
-        FogFilter fog = new FogFilter();
-        fog.setFogColor(new ColorRGBA(0, 0, 0, 1.0f));
-        fog.setFogDistance(7);
-        fog.setFogDensity(1.5f);
-        fpp.addFilter(fog);
-        viewPort.addProcessor(fpp);
-    }
-
-    /**
-     * Cleanup game resources
-     */
     private void cleanupGame() {
-        // Remove player
+        System.out.println("Cleaning up game...");
+
+        if (playerControl != null) {
+            bulletAppState.getPhysicsSpace().remove(playerControl);
+            playerControl = null;
+        }
+
+        if (landscapeControl != null) {
+            bulletAppState.getPhysicsSpace().remove(landscapeControl);
+            landscapeControl = null;
+        }
+
+        if (doomMap != null) {
+            rootNode.detachChild(doomMap);
+            doomMap = null;
+        }
+
         player = null;
         inputHandler.setPlayer(null);
 
-        // Clear entities
         if (entityManager != null) {
             entityManager.clear();
         }
 
-        // Remove map
-        if (mapNode != null) {
-            rootNode.detachChild(mapNode);
-            mapNode = null;
-        }
-
-        System.out.println("Game cleaned up");
+        System.out.println("Game cleanup complete");
     }
 
     @Override
     public void simpleUpdate(float tpf) {
         debugNoclip.update(tpf);
-        // Only update game logic when playing
-        if (stateManager.getCurrentState() == GameStateManager.GameState.PLAYING) {
+
+        if (gameStateManager.getCurrentState() == GameStateManager.GameState.PLAYING) {
+            // Update input handler
+            if (inputHandler != null) {
+                inputHandler.update(tpf);
+            }
+
+            // Update player smoothly
             if (player != null && !debugNoclip.isEnabled()) {
+                if (playerControl != null) {
+                    Vector3f physicsPos = playerControl.getPhysicsLocation();
+                    player.syncPositionWithCamera(physicsPos);
+                }
                 player.update(tpf);
                 hudManager.updateHUD(player);
             }
 
+            // Update entities
             if (entityManager != null) {
                 entityManager.update(tpf);
             }
@@ -399,12 +478,13 @@ public class HorrorGameJME extends SimpleApplication {
 
     @Override
     public void simpleRender(RenderManager rm) {
-        // Additional rendering if needed
+        // No custom rendering needed
     }
 
     @Override
     public void destroy() {
-        // Cleanup resources
+        System.out.println("Destroying game...");
+
         if (inputHandler != null) {
             inputHandler.cleanup();
         }

@@ -38,6 +38,28 @@ dependencies {
     // Optional: Terrain and networking if needed - UPDATED TO 3.8.1-stable
     implementation 'org.jmonkeyengine:jme3-terrain:3.8.1-stable'
     implementation 'org.jmonkeyengine:jme3-networking:3.8.1-stable'
+    implementation "com.github.stephengold:Minie:9.0.1"
+    implementation "org.jmonkeyengine:jme3-blender:3.3.2-stable"     // Blender file support
+
+}
+
+// Runtime JVM arguments optimized for physics games
+run {
+    jvmArgs = [
+            '-Xms1g',                              // Initial heap size
+            '-Xmx4g',                              // Maximum heap size
+            '-XX:+UseG1GC',                        // G1 garbage collector for better performance
+            '-XX:MaxGCPauseMillis=10',             // Low GC pause for smooth gameplay
+            '-Djava.awt.headless=false'            // Allow AWT for JME features
+    ]
+
+    // System properties for JME + Minie
+    systemProperties = [
+            'org.lwjgl.util.Debug': 'false',                    // Disable LWJGL debug
+            'org.lwjgl.util.NoChecks': 'true',                  // Disable LWJGL checks for performance
+            'jme3.renderer.caps.InstancedRendering': 'true',    // Enable instanced rendering
+            'minie.enableDebugMode': 'false'                     // Disable Minie debug visualization
+    ]
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -47,13 +69,13 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 // Configure the run task
-run {
+/* run {
     // JVM arguments for better performance
     jvmArgs = [
             '-Xms512m',
             '-Xmx1024m'
     ]
-}
+} */
 
 // Create a fat JAR with all dependencies
 jar {

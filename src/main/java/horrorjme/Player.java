@@ -1,5 +1,6 @@
 package horrorjme;
 
+import com.jme3.bullet.control.CharacterControl;
 import com.jme3.light.SpotLight;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
@@ -9,12 +10,14 @@ import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
 
 /**
- * Handles all player-related functionality
+ * FPS-tuned Player class with proper horror game controls and ground-based footsteps
  */
-public class Player{
-    private static final float MOVE_SPEED = 3f;
-    private static final float ROTATION_SPEED = 2f;
-    private static final float COLLISION_BUFFER = 0.3f;
+public class Player {
+
+    // FPS-tuned movement constants
+    private static final float MOVE_SPEED = 0.50f;        // Reduced from too fast
+    private static final float ROTATION_SPEED = 2f;      // Smooth rotation
+    private static final float COLLISION_BUFFER = 0.3f;  // Wall collision buffer
 
     // Player state
     private Vector3f position;
@@ -27,213 +30,127 @@ public class Player{
     private Node rootNode;
     private AudioManager audioManager;
 
-    // Movement flags
+    // Physics reference for ground detection - ADDED THIS LINE
+    private CharacterControl characterControl;
+
+    // Movement flags - for smooth FPS movement
     private boolean moveForward = false;
     private boolean moveBackward = false;
     private boolean strafeLeft = false;
     private boolean strafeRight = false;
 
-    // Mouse look
-    private float mouseSensitivity = 1.0f;
+    // FPS Mouse look settings
+    private float mouseSensitivity = 0.15f;  // REDUCED - was too sensitive
     private float yaw = 0f;
     private float pitch = 0f;
+    private float maxLookUp = 0.4f;    // Limit looking up
+    private float maxLookDown = -0.4f; // Limit looking down
 
-    // Reusable vectors to avoid garbage collection
+    // Reusable vectors for performance
     private Vector3f walkDirection = new Vector3f();
     private Vector3f camDir = new Vector3f();
     private Vector3f camLeft = new Vector3f();
     private Vector3f newPosition = new Vector3f();
     private Vector3f tempVector = new Vector3f();
 
-    // Map reference for collision
-    private int[][] mapData;
-
-    // Movement tracking for footsteps
-    private float lastFootstepTime = 0f;
+    // Movement smoothing for FPS feel
+    private float footstepTimer = 0f;
     private float footstepInterval = 0.5f;
+
+    // FPS movement dampening
+    private float movementSmoothing = 0.1f;
 
     public Player(Camera camera, Node rootNode, int[][] mapData, AudioManager audioManager) {
         this.camera = camera;
         this.rootNode = rootNode;
-        this.mapData = mapData;
         this.audioManager = audioManager;
-        this.position = new Vector3f(2.5f, 0.5f, 2.5f);
+        this.position = new Vector3f(10f, 150f, 20f); // Use your working spawn
 
-        // Set initial camera position and orientation
+        // Set initial camera position and look direction
         camera.setLocation(position.clone());
-        camera.lookAt(new Vector3f(3.5f, 0.5f, 2.5f), Vector3f.UNIT_Y);
+
+        // Look forward initially (not inverted)
+        Vector3f initialLookAt = position.add(new Vector3f(0, 0, -1)); // Look forward (negative Z)
+        camera.lookAt(initialLookAt, Vector3f.UNIT_Y);
 
         setupTorch();
+
+        System.out.println("FPS Player initialized with ground-based footstep system");
     }
 
-    // Overloaded constructor for backward compatibility
+    // Backward compatibility constructor
     public Player(Camera camera, Node rootNode, int[][] mapData) {
         this(camera, rootNode, mapData, null);
+    }
+
+    /**
+     * Set the CharacterControl reference for ground detection
+     * This should be called from InputHandler after physics setup
+     */
+    public void setCharacterControl(CharacterControl characterControl) {
+        this.characterControl = characterControl;
+        System.out.println("Player: CharacterControl set for ground detection");
     }
 
     private void setupTorch() {
         torch = new SpotLight();
 
-        // Position the flashlight slightly in front of the player
-        Vector3f torchOffset = camera.getDirection().mult(0.2f);
-        torch.setPosition(position.add(torchOffset));
-
-        // Set the direction to match camera direction
+        // Position flashlight in front of camera
+        Vector3f torchOffset = camera.getDirection().mult(0.3f);
+        torch.setPosition(camera.getLocation().add(torchOffset));
         torch.setDirection(camera.getDirection());
 
-        // Configure flashlight properties
-        torch.setSpotRange(25f);
-        torch.setSpotInnerAngle(12f * FastMath.DEG_TO_RAD);
-        torch.setSpotOuterAngle(25f * FastMath.DEG_TO_RAD);
-
-        // Light intensity and color
-        torch.setColor(ColorRGBA.White.mult(25.0f));
+        // Horror game flashlight settings
+        torch.setSpotRange(15f);                               // Not too far
+        torch.setSpotInnerAngle(8f * FastMath.DEG_TO_RAD);    // Focused beam
+        torch.setSpotOuterAngle(18f * FastMath.DEG_TO_RAD);   // Soft edges
+        torch.setColor(ColorRGBA.White.mult(8.0f));           // Dimmer for horror
 
         rootNode.addLight(torch);
     }
 
-    // ADDED: The missing update method
+    /**
+     * Update method with FPS-tuned movement (called when not using physics)
+     */
     public void update(float tpf) {
-        updateMovement(tpf);
         updateTorchPosition();
         updateFootstepAudio(tpf);
+        // Note: Movement handled by physics system now
     }
 
-    private void updateMovement(float tpf) {
-        // Get camera directions (reuse vectors)
-        camera.getDirection(camDir);
-        camera.getLeft(camLeft);
-        camDir.y = 0;
-        camLeft.y = 0;
-        camDir.normalizeLocal();
-        camLeft.normalizeLocal();
-
-        // Calculate walk direction
-        walkDirection.set(0, 0, 0);
-
-        if (moveForward) {
-            tempVector.set(camDir).multLocal(tpf * MOVE_SPEED);
-            walkDirection.addLocal(tempVector);
-        }
-        if (moveBackward) {
-            tempVector.set(camDir).multLocal(-tpf * MOVE_SPEED);
-            walkDirection.addLocal(tempVector);
-        }
-        if (strafeLeft) {
-            tempVector.set(camLeft).multLocal(tpf * MOVE_SPEED);
-            walkDirection.addLocal(tempVector);
-        }
-        if (strafeRight) {
-            tempVector.set(camLeft).multLocal(-tpf * MOVE_SPEED);
-            walkDirection.addLocal(tempVector);
-        }
-
-        // Apply movement with collision detection
-        newPosition.set(position).addLocal(walkDirection);
-        if (!isColliding(newPosition)) {
-            position.set(newPosition);
-            camera.setLocation(position);
-        } else {
-            // Try sliding along walls
-            trySlideMovement();
-        }
-    }
-
-    private void updateFootstepAudio(float tpf) {
-        // Play footstep sounds when moving
-        if (isMoving() && audioManager != null) {
-            lastFootstepTime += tpf;
-            if (lastFootstepTime >= footstepInterval) {
-                audioManager.playSoundEffect("footstep");
-                lastFootstepTime = 0f;
-            }
-        }
-    }
-
-    private boolean isMoving() {
-        return moveForward || moveBackward || strafeLeft || strafeRight;
-    }
-
-    private void trySlideMovement() {
-        // Try X movement only
-        newPosition.set(position);
-        newPosition.x += walkDirection.x;
-        if (!isColliding(newPosition)) {
-            position.x = newPosition.x;
-            camera.setLocation(position);
-        }
-
-        // Try Z movement only
-        newPosition.set(position);
-        newPosition.z += walkDirection.z;
-        if (!isColliding(newPosition)) {
-            position.z = newPosition.z;
-            camera.setLocation(position);
-        }
-    }
-
-    private boolean isColliding(Vector3f pos) {
-        int mapX = (int)pos.x;
-        int mapZ = (int)pos.z;
-
-        // Check bounds
-        if (mapX < 0 || mapX >= mapData[0].length || mapZ < 0 || mapZ >= mapData.length) {
-            return true;
-        }
-
-        // Check current cell
-        if (mapData[mapZ][mapX] == 1) {
-            return true;
-        }
-
-        // Check buffer zones around player
-        if (pos.x - mapX < COLLISION_BUFFER) {
-            if (mapX > 0 && mapData[mapZ][mapX - 1] == 1) {
-                return true;
-            }
-        }
-        if (mapX + 1 - pos.x < COLLISION_BUFFER) {
-            if (mapX < mapData[0].length - 1 && mapData[mapZ][mapX + 1] == 1) {
-                return true;
-            }
-        }
-        if (pos.z - mapZ < COLLISION_BUFFER) {
-            if (mapZ > 0 && mapData[mapZ - 1][mapX] == 1) {
-                return true;
-            }
-        }
-        if (mapZ + 1 - pos.z < COLLISION_BUFFER) {
-            if (mapZ < mapData.length - 1 && mapData[mapZ + 1][mapX] == 1) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
+    /**
+     * FPS Mouse look - FIXED INVERSION
+     */
     public void handleMouseLook(float deltaX, float deltaY) {
-        yaw -= deltaX * mouseSensitivity * 1.105f;
-        pitch -= deltaY * mouseSensitivity * 1.105f;
+        // FIXED: Remove negative signs that were causing inversion
+        yaw += deltaX * mouseSensitivity;      // WAS: yaw -= deltaX (inverted)
+        pitch += deltaY * mouseSensitivity;    // WAS: pitch -= deltaY (inverted)
 
         // Clamp pitch to prevent camera flipping
-        pitch = Math.max(-1.5f, Math.min(1.5f, pitch));
+        pitch = Math.max(maxLookDown, Math.min(maxLookUp, pitch));
 
-        // Apply rotation to camera
+        // Apply rotation to camera - FPS style
         Quaternion yawRot = new Quaternion();
         yawRot.fromAngleAxis(yaw, Vector3f.UNIT_Y);
 
         Quaternion pitchRot = new Quaternion();
         pitchRot.fromAngleAxis(pitch, Vector3f.UNIT_X);
 
+        // Combine rotations properly for FPS
         camera.setRotation(yawRot.mult(pitchRot));
     }
 
+    /**
+     * Toggle flashlight with horror game audio
+     */
     public void toggleTorch() {
         torchOn = !torchOn;
         if (torchOn) {
             rootNode.addLight(torch);
+            System.out.println("Flashlight ON");
         } else {
             rootNode.removeLight(torch);
+            System.out.println("Flashlight OFF");
         }
 
         // Play torch toggle sound
@@ -242,42 +159,98 @@ public class Player{
         }
     }
 
-    // FIXED: Updated to handle both position and direction for flashlight
+    /**
+     * Update torch to follow camera properly
+     */
     private void updateTorchPosition() {
         if (torch != null) {
-            // Position the flashlight slightly in front of the player
-            Vector3f torchOffset = camera.getDirection().mult(0.3f);
-            torch.setPosition(position.add(torchOffset));
-
-            // Update direction to match where the player is looking
+            // Position flashlight slightly in front of camera
+            Vector3f torchOffset = camera.getDirection().mult(0.4f);
+            Vector3f torchPos = camera.getLocation().add(torchOffset);
+            torch.setPosition(torchPos);
             torch.setDirection(camera.getDirection());
         }
     }
 
     /**
-     * NEW METHOD: Sync player position with camera (for noclip mode)
-     * This is called when noclip is disabled to prevent position snap-back
+     * FIXED: Ground-based footstep audio system
+     * Only plays footsteps when moving AND on the ground
      */
-    public void syncPositionWithCamera(Vector3f cameraPosition) {
-        this.position.set(cameraPosition);
-        // Also update camera rotation tracking
+    private void updateFootstepAudio(float tpf) {
+        // Check if player is moving AND on the ground
+        if (isMovingOnGround() && audioManager != null) {
+            footstepTimer += tpf;
+            if (footstepTimer >= footstepInterval) {
+                audioManager.playSoundEffect("footstep");
+                footstepTimer = 0f;
+            }
+        } else {
+            // Reset timer when not walking on ground
+            footstepTimer = 0f;
+        }
+    }
+
+    /**
+     * FIXED: Check if player is moving AND on the ground
+     * This prevents footstep sounds during jumping/falling
+     */
+    private boolean isMovingOnGround() {
+        boolean isMoving = moveForward || moveBackward || strafeLeft || strafeRight;
+
+        // If we don't have character control reference, fall back to old behavior
+        if (characterControl == null) {
+            return isMoving;
+        }
+
+        // Only play footsteps if moving AND on the ground
+        boolean onGround = characterControl.onGround();
+
+        // Optional: Add debug output for testing
+        if (isMoving && !onGround) {
+            // Uncomment for debugging: System.out.println("Moving but not on ground - no footsteps");
+        }
+
+        return isMoving && onGround;
+    }
+
+    /**
+     * Legacy method - kept for compatibility
+     */
+    private boolean isMoving() {
+        return moveForward || moveBackward || strafeLeft || strafeRight;
+    }
+
+    /**
+     * Sync player position with physics (called from physics system)
+     */
+    public void syncPositionWithCamera(Vector3f physicsPosition) {
+        this.position.set(physicsPosition);
+
+        // Update camera rotation tracking based on current camera
         Vector3f camDir = camera.getDirection();
         this.yaw = (float) Math.atan2(-camDir.x, -camDir.z);
         this.pitch = (float) Math.asin(camDir.y);
 
-        System.out.println("Player position synced to camera position: " + position);
+        // Clamp pitch after sync
+        pitch = Math.max(maxLookDown, Math.min(maxLookUp, pitch));
     }
 
-    // Movement setters
+    // Movement setters - kept for compatibility but not used with physics
     public void setMoveForward(boolean move) { this.moveForward = move; }
     public void setMoveBackward(boolean move) { this.moveBackward = move; }
     public void setStrafeLeft(boolean move) { this.strafeLeft = move; }
     public void setStrafeRight(boolean move) { this.strafeRight = move; }
 
-    // Getters
+    // Getters and setters
     public Vector3f getPosition() { return position.clone(); }
     public boolean isTorchOn() { return torchOn; }
-    public void setMouseSensitivity(float sensitivity) { this.mouseSensitivity = sensitivity; }
+
+    public void setMouseSensitivity(float sensitivity) {
+        // Clamp sensitivity to reasonable FPS values
+        this.mouseSensitivity = Math.max(0.1f, Math.min(2.0f, sensitivity));
+        System.out.println("Mouse sensitivity set to: " + this.mouseSensitivity);
+    }
+
     public float getMouseSensitivity() { return mouseSensitivity; }
     public float getHealth() { return health; }
     public float getMaxHealth() { return maxHealth; }
@@ -296,8 +269,14 @@ public class Player{
         health = Math.min(maxHealth, health + amount);
     }
 
-    // Audio manager setter
     public void setAudioManager(AudioManager audioManager) {
         this.audioManager = audioManager;
+    }
+
+    /**
+     * Check if player is currently on the ground (for external use)
+     */
+    public boolean isOnGround() {
+        return characterControl != null ? characterControl.onGround() : true;
     }
 }
