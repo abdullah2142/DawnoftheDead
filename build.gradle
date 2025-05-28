@@ -22,21 +22,22 @@ repositories {
 }
 
 dependencies {
-    // JMonkeyEngine Core
-    implementation 'org.jmonkeyengine:jme3-core:3.5.2-stable'
-    implementation 'org.jmonkeyengine:jme3-desktop:3.5.2-stable'
-    implementation 'org.jmonkeyengine:jme3-lwjgl3:3.5.2-stable'
+    // JMonkeyEngine Core - UPDATED TO 3.8.1-stable (LATEST)
+    implementation 'org.jmonkeyengine:jme3-core:3.8.1-stable'
+    implementation 'org.jmonkeyengine:jme3-desktop:3.8.1-stable'
+    implementation 'org.jmonkeyengine:jme3-lwjgl3:3.8.1-stable'
+    implementation 'org.jmonkeyengine:jme3-awt-dialogs:3.8.1-stable'
 
-    // JMonkeyEngine Effects and Plugins
-    implementation 'org.jmonkeyengine:jme3-effects:3.5.2-stable'
-    implementation 'org.jmonkeyengine:jme3-plugins:3.5.2-stable'
+    // JMonkeyEngine Effects and Plugins - UPDATED TO 3.8.1-stable
+    implementation 'org.jmonkeyengine:jme3-effects:3.8.1-stable'
+    implementation 'org.jmonkeyengine:jme3-plugins:3.8.1-stable'
 
-    // Audio support
-    implementation 'org.jmonkeyengine:jme3-jogg:3.5.2-stable'
+    // Audio support - UPDATED TO 3.8.1-stable
+    implementation 'org.jmonkeyengine:jme3-jogg:3.8.1-stable'
 
-    // Optional: Terrain and networking if needed
-     implementation 'org.jmonkeyengine:jme3-terrain:3.5.2-stable'
-     implementation 'org.jmonkeyengine:jme3-networking:3.5.2-stable'
+    // Optional: Terrain and networking if needed - UPDATED TO 3.8.1-stable
+    implementation 'org.jmonkeyengine:jme3-terrain:3.8.1-stable'
+    implementation 'org.jmonkeyengine:jme3-networking:3.8.1-stable'
 }
 
 tasks.withType(JavaCompile).configureEach {

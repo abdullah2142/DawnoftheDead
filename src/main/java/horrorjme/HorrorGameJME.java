@@ -237,7 +237,7 @@ public class HorrorGameJME extends SimpleApplication {
      */
     private void initializeGameWorld() {
         //createMap();
-        Spatial doomMap = assetManager.loadModel("Models/DOOM2_MAP01.obj");
+        Spatial doomMap = assetManager.loadModel("Models/DOOM2_MAP01.j3o");
         doomMap.scale(0.1f); // Adjust scale
         doomMap.depthFirstTraversal(spatial -> {
             if (spatial instanceof Geometry) {
@@ -252,10 +252,8 @@ public class HorrorGameJME extends SimpleApplication {
         setupLighting();
         setupFog();
 
-        // Enable anisotropic filtering if available
-        if (renderer.getLimits().get(Limits.TextureAnisotropy) > 1) {
-            renderer.setDefaultAnisotropicFilter(4);
-        }
+       // Enable anisotropic filtering if available
+
     }
 
     /**
