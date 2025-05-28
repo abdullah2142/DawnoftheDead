@@ -22,10 +22,18 @@ public class DebugNoclipControl implements ActionListener, AnalogListener {
     // Movement states
     private boolean forward, backward, left, right, up, down;
 
+    // Reference to player to sync position when disabling noclip
+    private Player player;
+
     public DebugNoclipControl(Camera cam, InputManager inputManager) {
         this.cam = cam;
         this.inputManager = inputManager;
         setupControls();
+    }
+
+    // Add method to set player reference
+    public void setPlayer(Player player) {
+        this.player = player;
     }
 
     private void setupControls() {
@@ -82,6 +90,14 @@ public class DebugNoclipControl implements ActionListener, AnalogListener {
                     "Noclip_Up", "Noclip_Down", "Noclip_SpeedUp");
         } else {
             System.out.println("NOCLIP MODE DISABLED");
+
+            // IMPORTANT: Sync player position with camera before disabling noclip
+            if (player != null) {
+                Vector3f currentCameraPos = cam.getLocation().clone();
+                player.syncPositionWithCamera(currentCameraPos);
+                System.out.println("Player position synced to: " + currentCameraPos);
+            }
+
             // Remove movement listeners
             inputManager.removeListener(this);
             // Keep toggle listener

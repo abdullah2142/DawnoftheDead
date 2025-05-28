@@ -254,6 +254,20 @@ public class Player{
         }
     }
 
+    /**
+     * NEW METHOD: Sync player position with camera (for noclip mode)
+     * This is called when noclip is disabled to prevent position snap-back
+     */
+    public void syncPositionWithCamera(Vector3f cameraPosition) {
+        this.position.set(cameraPosition);
+        // Also update camera rotation tracking
+        Vector3f camDir = camera.getDirection();
+        this.yaw = (float) Math.atan2(-camDir.x, -camDir.z);
+        this.pitch = (float) Math.asin(camDir.y);
+
+        System.out.println("Player position synced to camera position: " + position);
+    }
+
     // Movement setters
     public void setMoveForward(boolean move) { this.moveForward = move; }
     public void setMoveBackward(boolean move) { this.moveBackward = move; }

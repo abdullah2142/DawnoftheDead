@@ -1,0 +1,270 @@
+# MTL for DOOM2.WAD, map MAP01
+# Created by Ultimate Doom Builder 3.0.0.4237
+
+newmtl ASHWALL3
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\ASHWALL3.jpg
+
+newmtl BIGDOOR1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\BIGDOOR1.jpg
+
+newmtl BRNSMAL1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\BRNSMAL1.jpg
+
+newmtl BRONZE1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\BRONZE1.jpg
+
+newmtl BRONZE2
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\BRONZE2.jpg
+
+newmtl BROVINE2
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\BROVINE2.jpg
+
+newmtl BROWN1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\BROWN1.jpg
+
+newmtl BROWN96
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\BROWN96.jpg
+
+newmtl BROWNGRN
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\BROWNGRN.jpg
+
+newmtl BROWNHUG
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\BROWNHUG.jpg
+
+newmtl CEMENT9
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\CEMENT9.jpg
+
+newmtl COMPSPAN
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\COMPSPAN.jpg
+
+newmtl COMPWERD
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\COMPWERD.jpg
+
+newmtl EXITDOOR
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\EXITDOOR.jpg
+
+newmtl EXITSIGN
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\EXITSIGN.jpg
+
+newmtl LITE5
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\LITE5.jpg
+
+newmtl MIDBARS3
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\MIDBARS3.jpg
+
+newmtl MODWALL2
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\MODWALL2.jpg
+
+newmtl MODWALL3
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\MODWALL3.jpg
+
+newmtl PIPE2
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\PIPE2.jpg
+
+newmtl PIPE4
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\PIPE4.jpg
+
+newmtl SPACEW3
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\SPACEW3.jpg
+
+newmtl SPACEW4
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\SPACEW4.jpg
+
+newmtl STEP2
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\STEP2.jpg
+
+newmtl STEP6
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\STEP6.jpg
+
+newmtl SUPPORT2
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\SUPPORT2.jpg
+
+newmtl SW1BRCOM
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\SW1BRCOM.jpg
+
+newmtl SW1BRNGN
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\SW1BRNGN.jpg
+
+newmtl SW1COMP
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\SW1COMP.jpg
+
+newmtl SW2BRCOM
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\SW2BRCOM.jpg
+
+newmtl TEKGREN1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\TEKGREN1.jpg
+
+newmtl TEKGREN2
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\TEKGREN2.jpg
+
+newmtl TEKGREN3
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\TEKGREN3.jpg
+
+newmtl TEKGREN4
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\TEKGREN4.jpg
+
+newmtl TEKGREN5
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\TEKGREN5.jpg
+
+newmtl TEKWALL6
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\TEKWALL6.jpg
+
+newmtl CEIL1_2
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\CEIL1_2.jpg
+
+newmtl CEIL1_3
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\CEIL1_3.jpg
+
+newmtl CEIL3_1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\CEIL3_1.jpg
+
+newmtl CEIL3_3
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\CEIL3_3.jpg
+
+newmtl CEIL5_1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\CEIL5_1.jpg
+
+newmtl CEIL5_2
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\CEIL5_2.jpg
+
+newmtl F_SKY1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\F_SKY1.jpg
+
+newmtl FLAT1_1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLAT1_1.jpg
+
+newmtl FLAT1_2
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLAT1_2.jpg
+
+newmtl FLAT10
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLAT10.jpg
+
+newmtl FLAT18
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLAT18.jpg
+
+newmtl FLAT2
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLAT2.jpg
+
+newmtl FLAT20
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLAT20.jpg
+
+newmtl FLAT23
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLAT23.jpg
+
+newmtl FLAT4
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLAT4.jpg
+
+newmtl FLAT5
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLAT5.jpg
+
+newmtl FLAT5_5
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLAT5_5.jpg
+
+newmtl FLOOR0_1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLOOR0_1.jpg
+
+newmtl FLOOR0_2
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLOOR0_2.jpg
+
+newmtl FLOOR1_1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLOOR1_1.jpg
+
+newmtl FLOOR3_3
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLOOR3_3.jpg
+
+newmtl FLOOR4_1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLOOR4_1.jpg
+
+newmtl FLOOR5_3
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLOOR5_3.jpg
+
+newmtl FLOOR5_4
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLOOR5_4.jpg
+
+newmtl FLOOR7_1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FLOOR7_1.jpg
+
+newmtl FWATER4
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\FWATER4.jpg
+
+newmtl GRASS1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\GRASS1.jpg
+
+newmtl GRNLITE1
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\GRNLITE1.jpg
+
+newmtl MFLR8_3
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\MFLR8_3.jpg
+
+newmtl RROCK09
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\RROCK09.jpg
+
+newmtl TLITE6_4
+Kd 1.0 1.0 1.0
+map_Kd D:\C++ prac\HorrorGameJME\src\main\resources\Models\TLITE6_4.jpg

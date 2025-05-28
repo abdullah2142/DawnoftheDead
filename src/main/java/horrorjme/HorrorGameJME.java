@@ -3,6 +3,7 @@ package horrorjme;
 import com.jme3.app.SimpleApplication;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
+import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
@@ -171,6 +172,9 @@ public class HorrorGameJME extends SimpleApplication {
         player = new Player(cam, rootNode, mapData, audioManager);
         inputHandler.setPlayer(player);
 
+        // IMPORTANT: Set player reference in noclip control for position syncing
+        debugNoclip.setPlayer(player);
+
         // Apply options
         optionsManager.applySettings(player, audioManager);
 
@@ -235,6 +239,15 @@ public class HorrorGameJME extends SimpleApplication {
         //createMap();
         Spatial doomMap = assetManager.loadModel("Models/DOOM2_MAP01.obj");
         doomMap.scale(0.1f); // Adjust scale
+        doomMap.depthFirstTraversal(spatial -> {
+            if (spatial instanceof Geometry) {
+                Material mat = ((Geometry) spatial).getMaterial();
+                if (mat != null) {
+                    mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+                    mat.setFloat("AlphaDiscardThreshold", 0.1f);
+                }
+            }
+        });
         rootNode.attachChild(doomMap);
         setupLighting();
         setupFog();
@@ -343,7 +356,7 @@ public class HorrorGameJME extends SimpleApplication {
         FogFilter fog = new FogFilter();
         fog.setFogColor(new ColorRGBA(0, 0, 0, 1.0f));
         fog.setFogDistance(7);
-        fog.setFogDensity(2.5f);
+        fog.setFogDensity(1.5f);
         fpp.addFilter(fog);
         viewPort.addProcessor(fpp);
     }
