@@ -6,7 +6,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Manages all entities in the game world
+ * Optimized EntityManager with efficient spatial grid updates and collision detection
  */
 public class EntityManager {
 
@@ -15,15 +15,26 @@ public class EntityManager {
     private List<Entity> entitiesToRemove;
     private Node entityNode;
 
-    // Spatial partitioning for optimization (simple grid)
+    // Spatial partitioning for optimization
     private static final int GRID_SIZE = 16;
     private Map<String, Set<Entity>> spatialGrid;
+
+    // OPTIMIZATION: Track previous positions to detect movement
+    private Map<String, Vector3f> previousPositions;
+    private static final float MOVEMENT_THRESHOLD = 0.01f; // Only update if moved more than this
+
+    // OPTIMIZATION: Track processed collision pairs to avoid double processing
+    private Set<String> processedCollisionPairs;
 
     public EntityManager(Node rootNode) {
         entities = new ConcurrentHashMap<>();
         entitiesByType = new EnumMap<>(Entity.EntityType.class);
         entitiesToRemove = new ArrayList<>();
         spatialGrid = new HashMap<>();
+
+        // OPTIMIZATION: Initialize position tracking
+        previousPositions = new HashMap<>();
+        processedCollisionPairs = new HashSet<>();
 
         // Initialize type lists
         for (Entity.EntityType type : Entity.EntityType.values()) {
@@ -52,17 +63,10 @@ public class EntityManager {
         // Add to spatial grid
         addToSpatialGrid(entity);
 
-        System.out.println("Added entity: " + id + " of type " + entity.getType());
-    }
+        // OPTIMIZATION: Track initial position
+        previousPositions.put(id, entity.getPosition().clone());
 
-    /**
-     * Remove entity from the manager
-     */
-    public void removeEntity(String entityId) {
-        Entity entity = entities.get(entityId);
-        if (entity != null) {
-            removeEntity(entity);
-        }
+        System.out.println("Added entity: " + id + " of type " + entity.getType());
     }
 
     /**
@@ -71,27 +75,34 @@ public class EntityManager {
     public void removeEntity(Entity entity) {
         if (entity == null) return;
 
-        entities.remove(entity.getEntityId());
+        String entityId = entity.getEntityId();
+        entities.remove(entityId);
         entitiesByType.get(entity.getType()).remove(entity);
 
         // Remove from spatial grid
         removeFromSpatialGrid(entity);
 
+        // OPTIMIZATION: Clean up position tracking
+        previousPositions.remove(entityId);
+
         // Detach from scene
         entity.detachFromScene();
 
-        System.out.println("Removed entity: " + entity.getEntityId());
+        System.out.println("Removed entity: " + entityId);
     }
 
     /**
-     * Update all entities
+     * OPTIMIZED: Update all entities with efficient spatial grid updates
      */
     public void update(float tpf) {
+        // OPTIMIZATION: Clear collision pairs at start of frame
+        processedCollisionPairs.clear();
+
         // Update all active entities
         for (Entity entity : entities.values()) {
             if (entity.isActive() && !entity.isDestroyed()) {
-                // Update spatial grid position if entity moved
-                updateSpatialGrid(entity);
+                // OPTIMIZATION: Only update spatial grid if entity actually moved
+                updateSpatialGridIfMoved(entity);
 
                 // Update entity logic
                 entity.update(tpf);
@@ -109,52 +120,113 @@ public class EntityManager {
         }
         entitiesToRemove.clear();
 
-        // Check collisions
-        checkCollisions();
+        // Check collisions with optimization
+        checkCollisionsOptimized();
     }
 
     /**
-     * Check collisions between entities
+     * OPTIMIZATION: Only update spatial grid if entity actually moved
      */
-    private void checkCollisions() {
-        // Use spatial grid for efficient collision detection
+    private void updateSpatialGridIfMoved(Entity entity) {
+        String entityId = entity.getEntityId();
+        Vector3f currentPos = entity.getPosition();
+        Vector3f previousPos = previousPositions.get(entityId);
+
+        if (previousPos == null) {
+            // First time - add to spatial grid and track position
+            addToSpatialGrid(entity);
+            previousPositions.put(entityId, currentPos.clone());
+            return;
+        }
+
+        // Check if entity moved significantly
+        float distanceMoved = currentPos.distance(previousPos);
+        if (distanceMoved > MOVEMENT_THRESHOLD) {
+            // Entity moved - update spatial grid
+            String oldGridKey = getGridKey(previousPos);
+            String newGridKey = getGridKey(currentPos);
+
+            // Only do expensive grid operations if entity changed grid cells
+            if (!oldGridKey.equals(newGridKey)) {
+                removeFromSpatialGridAtPosition(entity, previousPos);
+                addToSpatialGrid(entity);
+            }
+
+            // Update tracked position
+            previousPos.set(currentPos);
+        }
+    }
+
+    /**
+     * OPTIMIZATION: Avoid double collision processing
+     */
+    private void checkCollisionsOptimized() {
         for (Entity entity : entities.values()) {
             if (!entity.isActive() || entity.isDestroyed()) continue;
 
             Set<Entity> nearbyEntities = getNearbyEntities(entity);
             for (Entity other : nearbyEntities) {
                 if (entity != other && entity.collidesWith(other)) {
-                    entity.onCollision(other);
-                    other.onCollision(entity);
+
+                    // OPTIMIZATION: Create unique pair ID to avoid double processing
+                    String pairId = createCollisionPairId(entity, other);
+
+                    if (!processedCollisionPairs.contains(pairId)) {
+                        // Process collision only once per pair
+                        entity.onCollision(other);
+                        other.onCollision(entity);
+
+                        // Mark this pair as processed for this frame
+                        processedCollisionPairs.add(pairId);
+                    }
                 }
             }
         }
     }
 
     /**
-     * Get entities of a specific type
+     * OPTIMIZATION: Create consistent collision pair ID regardless of order
      */
+    private String createCollisionPairId(Entity a, Entity b) {
+        String idA = a.getEntityId();
+        String idB = b.getEntityId();
+
+        // Ensure consistent ordering so A-B and B-A produce same ID
+        if (idA.compareTo(idB) < 0) {
+            return idA + "-" + idB;
+        } else {
+            return idB + "-" + idA;
+        }
+    }
+
+    /**
+     * OPTIMIZATION: Remove entity from spatial grid at specific position
+     */
+    private void removeFromSpatialGridAtPosition(Entity entity, Vector3f position) {
+        String key = getGridKey(position);
+        Set<Entity> grid = spatialGrid.get(key);
+        if (grid != null) {
+            grid.remove(entity);
+            if (grid.isEmpty()) {
+                spatialGrid.remove(key);
+            }
+        }
+    }
+
+    // ... Rest of methods remain the same ...
+
     public List<Entity> getEntitiesByType(Entity.EntityType type) {
         return new ArrayList<>(entitiesByType.get(type));
     }
 
-    /**
-     * Get entity by ID
-     */
     public Entity getEntity(String entityId) {
         return entities.get(entityId);
     }
 
-    /**
-     * Get all entities
-     */
     public Collection<Entity> getAllEntities() {
         return new ArrayList<>(entities.values());
     }
 
-    /**
-     * Get entities within a certain distance of a position
-     */
     public List<Entity> getEntitiesInRange(Vector3f position, float range) {
         List<Entity> result = new ArrayList<>();
         for (Entity entity : entities.values()) {
@@ -167,9 +239,6 @@ public class EntityManager {
         return result;
     }
 
-    /**
-     * Get the closest entity of a specific type to a position
-     */
     public Entity getClosestEntity(Vector3f position, Entity.EntityType type) {
         Entity closest = null;
         float closestDistance = Float.MAX_VALUE;
@@ -187,9 +256,6 @@ public class EntityManager {
         return closest;
     }
 
-    /**
-     * Clear all entities
-     */
     public void clear() {
         for (Entity entity : entities.values()) {
             entity.detachFromScene();
@@ -200,9 +266,13 @@ public class EntityManager {
         }
         spatialGrid.clear();
         entitiesToRemove.clear();
+
+        // OPTIMIZATION: Clear tracking data
+        previousPositions.clear();
+        processedCollisionPairs.clear();
     }
 
-    // Spatial Grid Methods for optimization
+    // Spatial Grid Methods
     private String getGridKey(Vector3f position) {
         int x = (int)(position.x / GRID_SIZE);
         int z = (int)(position.z / GRID_SIZE);
@@ -223,13 +293,6 @@ public class EntityManager {
                 spatialGrid.remove(key);
             }
         }
-    }
-
-    private void updateSpatialGrid(Entity entity) {
-        // Simple approach: remove and re-add
-        // In production, you'd track previous position
-        removeFromSpatialGrid(entity);
-        addToSpatialGrid(entity);
     }
 
     private Set<Entity> getNearbyEntities(Entity entity) {
@@ -260,5 +323,20 @@ public class EntityManager {
 
     public int getEntityCount(Entity.EntityType type) {
         return entitiesByType.get(type).size();
+    }
+
+    // OPTIMIZATION: Performance statistics
+    public void printPerformanceStats() {
+        System.out.println("=== EntityManager Performance Stats ===");
+        System.out.println("Total entities: " + entities.size());
+        System.out.println("Spatial grid cells: " + spatialGrid.size());
+        System.out.println("Collision pairs processed this frame: " + processedCollisionPairs.size());
+
+        int totalEntitiesInGrid = 0;
+        for (Set<Entity> cell : spatialGrid.values()) {
+            totalEntitiesInGrid += cell.size();
+        }
+        System.out.println("Total entity-cell mappings: " + totalEntitiesInGrid);
+        System.out.println("========================================");
     }
 }

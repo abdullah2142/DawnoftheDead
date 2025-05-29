@@ -20,6 +20,8 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.system.AppSettings;
 
+
+
 /**
  * Horror Game with smooth movement and DOOM map loading
  */
@@ -47,7 +49,7 @@ public class HorrorGameJME extends SimpleApplication {
     // SMOOTH MOVEMENT SETTINGS
     private static final float MAP_SCALE = 0.055f;  // Smaller scale for DOOM map
     private static final Vector3f PLAYER_START_POS = new Vector3f(10f, 150f, 20f);
-    private static final float MOVE_SPEED = 8f;     // Smooth movement speed
+
     private static final float MOUSE_SENSITIVITY = 0.5f; // Lower mouse sensitivity
 
     public static void main(String[] args) {
@@ -155,8 +157,7 @@ public class HorrorGameJME extends SimpleApplication {
         inputHandler = new InputHandler(inputManager, gameStateManager, this);
 
         // Configure smooth movement settings
-        inputHandler.setMoveSpeed(MOVE_SPEED);
-        inputHandler.setMouseSensitivity(MOUSE_SENSITIVITY);
+
 
         menuSystem = new MenuSystem(assetManager, guiNode, settings, gameStateManager, this, optionsManager);
         inputHandler.setMenuSystem(menuSystem);
@@ -199,7 +200,7 @@ public class HorrorGameJME extends SimpleApplication {
 
         try {
             // Load the DOOM map
-            doomMap = assetManager.loadModel("Models/DOOM2_MAP01.obj");
+            doomMap = assetManager.loadModel("Models/DOOM2_MAP01.j3o");
 
             if (doomMap == null) {
                 throw new RuntimeException("DOOM map file not found at Models/DOOM2_MAP01.obj");
@@ -366,7 +367,7 @@ public class HorrorGameJME extends SimpleApplication {
 
         // Create regular player for torch and other features
         player = new Player(cam, rootNode, null, audioManager);
-        player.setMouseSensitivity(MOUSE_SENSITIVITY); // Set smooth mouse sensitivity
+
 
         inputHandler.setPlayer(player);
         inputHandler.setPlayerControl(playerControl);

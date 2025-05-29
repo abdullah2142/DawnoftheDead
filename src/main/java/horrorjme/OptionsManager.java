@@ -112,10 +112,6 @@ public class OptionsManager {
 
     // Apply settings to game systems
     public void applySettings(Player player, AudioManager audioManager) {
-        if (player != null) {
-            player.setMouseSensitivity(mouseSensitivity);
-        }
-
         if (audioManager != null) {
             audioManager.setMasterVolume(masterVolume);
         }

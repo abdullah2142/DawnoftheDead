@@ -13,12 +13,6 @@ import com.jme3.scene.Node;
  * FPS-tuned Player class with proper horror game controls and ground-based footsteps
  */
 public class Player {
-
-    // FPS-tuned movement constants
-    private static final float MOVE_SPEED = 0.50f;        // Reduced from too fast
-    private static final float ROTATION_SPEED = 2f;      // Smooth rotation
-    private static final float COLLISION_BUFFER = 0.3f;  // Wall collision buffer
-
     // Player state
     private Vector3f position;
     private boolean torchOn = true;
@@ -40,11 +34,7 @@ public class Player {
     private boolean strafeRight = false;
 
     // FPS Mouse look settings
-    private float mouseSensitivity = 0.15f;  // REDUCED - was too sensitive
-    private float yaw = 0f;
-    private float pitch = 0f;
-    private float maxLookUp = 0.4f;    // Limit looking up
-    private float maxLookDown = -0.4f; // Limit looking down
+
 
     // Reusable vectors for performance
     private Vector3f walkDirection = new Vector3f();
@@ -57,8 +47,8 @@ public class Player {
     private float footstepTimer = 0f;
     private float footstepInterval = 0.5f;
 
-    // FPS movement dampening
-    private float movementSmoothing = 0.1f;
+
+
 
     public Player(Camera camera, Node rootNode, int[][] mapData, AudioManager audioManager) {
         this.camera = camera;
@@ -118,27 +108,7 @@ public class Player {
         // Note: Movement handled by physics system now
     }
 
-    /**
-     * FPS Mouse look - FIXED INVERSION
-     */
-    public void handleMouseLook(float deltaX, float deltaY) {
-        // FIXED: Remove negative signs that were causing inversion
-        yaw += deltaX * mouseSensitivity;      // WAS: yaw -= deltaX (inverted)
-        pitch += deltaY * mouseSensitivity;    // WAS: pitch -= deltaY (inverted)
 
-        // Clamp pitch to prevent camera flipping
-        pitch = Math.max(maxLookDown, Math.min(maxLookUp, pitch));
-
-        // Apply rotation to camera - FPS style
-        Quaternion yawRot = new Quaternion();
-        yawRot.fromAngleAxis(yaw, Vector3f.UNIT_Y);
-
-        Quaternion pitchRot = new Quaternion();
-        pitchRot.fromAngleAxis(pitch, Vector3f.UNIT_X);
-
-        // Combine rotations properly for FPS
-        camera.setRotation(yawRot.mult(pitchRot));
-    }
 
     /**
      * Toggle flashlight with horror game audio
@@ -225,14 +195,7 @@ public class Player {
      */
     public void syncPositionWithCamera(Vector3f physicsPosition) {
         this.position.set(physicsPosition);
-
-        // Update camera rotation tracking based on current camera
-        Vector3f camDir = camera.getDirection();
-        this.yaw = (float) Math.atan2(-camDir.x, -camDir.z);
-        this.pitch = (float) Math.asin(camDir.y);
-
-        // Clamp pitch after sync
-        pitch = Math.max(maxLookDown, Math.min(maxLookUp, pitch));
+        // InputHandler handles all camera rotation - no need to track yaw/pitch here
     }
 
     // Movement setters - kept for compatibility but not used with physics
@@ -245,13 +208,7 @@ public class Player {
     public Vector3f getPosition() { return position.clone(); }
     public boolean isTorchOn() { return torchOn; }
 
-    public void setMouseSensitivity(float sensitivity) {
-        // Clamp sensitivity to reasonable FPS values
-        this.mouseSensitivity = Math.max(0.1f, Math.min(2.0f, sensitivity));
-        System.out.println("Mouse sensitivity set to: " + this.mouseSensitivity);
-    }
 
-    public float getMouseSensitivity() { return mouseSensitivity; }
     public float getHealth() { return health; }
     public float getMaxHealth() { return maxHealth; }
     public boolean isDead() { return isDead; }

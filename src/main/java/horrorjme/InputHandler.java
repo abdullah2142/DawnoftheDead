@@ -10,6 +10,7 @@ import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
+import com.jme3.math.FastMath;
 
 /**
  * Fixed InputHandler with smooth mouse handling and ground-based footsteps
@@ -241,30 +242,32 @@ public class InputHandler implements ActionListener, AnalogListener {
     private void updatePhysicsMovement() {
         if (playerControl == null) return;
 
-        // Get camera directions
-        cam.getDirection(camDir);
-        cam.getLeft(camLeft);
-        camDir.y = 0;
+        // Get FRESH camera direction vectors every frame
+        Vector3f camDirection = cam.getDirection().clone();
+        Vector3f camLeft = cam.getLeft().clone();
+
+        // Zero out Y components for ground-based movement (crucial for FPS feel)
+        camDirection.y = 0;
         camLeft.y = 0;
-        camDir.normalizeLocal();
+
+        // Normalize to prevent speed changes when looking up/down
+        camDirection.normalizeLocal();
         camLeft.normalizeLocal();
 
-        // Calculate walk direction
+        // Calculate walk direction based on current camera orientation
         walkDirection.set(0, 0, 0);
 
         if (inputFlags[FORWARD]) {
-            walkDirection.addLocal(camDir);
+            walkDirection.addLocal(camDirection);
         }
         if (inputFlags[BACKWARD]) {
-            walkDirection.addLocal(camDir.negate());
-            camDir.normalizeLocal();
+            walkDirection.addLocal(camDirection.negate());
         }
         if (inputFlags[LEFT]) {
             walkDirection.addLocal(camLeft);
         }
         if (inputFlags[RIGHT]) {
             walkDirection.addLocal(camLeft.negate());
-            camLeft.normalizeLocal();
         }
 
         // Apply speed
@@ -279,7 +282,6 @@ public class InputHandler implements ActionListener, AnalogListener {
 
         playerControl.setWalkDirection(walkDirection);
     }
-
     @Override
     public void onAnalog(String name, float value, float tpf) {
         // Only handle mouse look when in game and mouse is enabled
