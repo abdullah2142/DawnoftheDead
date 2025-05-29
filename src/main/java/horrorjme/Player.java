@@ -193,6 +193,11 @@ public class Player {
     /**
      * Sync player position with physics (called from physics system)
      */
+    public void setPositionOnly(Vector3f physicsPosition) {
+        this.position.set(physicsPosition);
+        // DON'T update yaw/pitch - let InputHandler handle rotation
+    }
+
     public void syncPositionWithCamera(Vector3f physicsPosition) {
         this.position.set(physicsPosition);
         // InputHandler handles all camera rotation - no need to track yaw/pitch here

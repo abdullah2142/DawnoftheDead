@@ -7,6 +7,8 @@ import com.jme3.audio.AudioSource;
 import com.jme3.scene.Node;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Manages all audio in the game - with improved error handling and JME best practices
@@ -19,23 +21,22 @@ public class AudioManager {
     private boolean audioEnabled = true;
 
     // Audio categories
-    private Map<String, AudioNode> backgroundMusic;
-    private Map<String, AudioNode> soundEffects;
-    private Map<String, AudioNode> ambientSounds;
+    private final ConcurrentHashMap<String, AudioNode> backgroundMusic;
+    private final ConcurrentHashMap<String, AudioNode> soundEffects;
+    private final ConcurrentHashMap<String, AudioNode> ambientSounds;
 
-    // Currently playing
-    private AudioNode currentMusic;
-    private String currentMusicKey;
+    // Currently playing - thread-safe references
+    private final AtomicReference<AudioNode> currentMusic = new AtomicReference<>();
+    private volatile String currentMusicKey;
 
     public AudioManager(AssetManager assetManager, Node rootNode) {
         this.assetManager = assetManager;
         this.rootNode = rootNode;
 
-        backgroundMusic = new HashMap<>();
-        soundEffects = new HashMap<>();
-        ambientSounds = new HashMap<>();
+        backgroundMusic = new ConcurrentHashMap<>();
+        soundEffects = new ConcurrentHashMap<>();
+        ambientSounds = new ConcurrentHashMap<>();
     }
-
     /**
      * Load and register background music
      */
@@ -54,7 +55,7 @@ public class AudioManager {
         } catch (Exception e) {
             System.err.println("Failed to load background music " + key + " at path " + audioPath + ": " + e.getMessage());
             // Create a dummy entry so hasBackgroundMusic works correctly
-            backgroundMusic.put(key, null);
+
         }
     }
 
@@ -78,7 +79,7 @@ public class AudioManager {
             // Test if the audio node was created successfully
             if (sfx.getAudioData() == null) {
                 System.err.println("Warning: Audio data is null for " + key);
-                soundEffects.put(key, null);
+
                 return;
             }
 
@@ -94,7 +95,7 @@ public class AudioManager {
             System.err.println("Failed to load sound effect " + key + " at path " + audioPath + ": " + e.getMessage());
             e.printStackTrace();
             // Create a dummy entry so hasSoundEffect works correctly
-            soundEffects.put(key, null);
+
         }
     }
 
@@ -135,7 +136,7 @@ public class AudioManager {
 
         if (!loaded) {
             System.err.println("All format attempts failed for " + key);
-            soundEffects.put(key, null);
+
         }
     }
 
@@ -157,7 +158,7 @@ public class AudioManager {
         } catch (Exception e) {
             System.err.println("Failed to load ambient sound " + key + " at path " + audioPath + ": " + e.getMessage());
             // Create a dummy entry so hasAmbientSound works correctly
-            ambientSounds.put(key, null);
+
         }
     }
 
@@ -167,14 +168,22 @@ public class AudioManager {
     public void playBackgroundMusic(String key) {
         if (!audioEnabled) return;
 
-        // Stop current music
-        stopBackgroundMusic();
+        // Stop current music atomically
+        AudioNode oldMusic = currentMusic.getAndSet(null);
+        if (oldMusic != null) {
+            try {
+                oldMusic.stop();
+            } catch (Exception e) {
+                System.err.println("Error stopping background music: " + e.getMessage());
+            }
+        }
 
+        // Start new music
         AudioNode music = backgroundMusic.get(key);
         if (music != null) {
             try {
                 music.play();
-                currentMusic = music;
+                currentMusic.set(music);
                 currentMusicKey = key;
                 System.out.println("Playing background music: " + key);
             } catch (Exception e) {
@@ -189,13 +198,13 @@ public class AudioManager {
      * Stop current background music
      */
     public void stopBackgroundMusic() {
-        if (currentMusic != null) {
+        AudioNode music = currentMusic.getAndSet(null);
+        if (music != null) {
             try {
-                currentMusic.stop();
+                music.stop();
             } catch (Exception e) {
                 System.err.println("Error stopping background music: " + e.getMessage());
             }
-            currentMusic = null;
             currentMusicKey = null;
         }
     }
@@ -204,9 +213,10 @@ public class AudioManager {
      * Pause current background music
      */
     public void pauseBackgroundMusic() {
-        if (currentMusic != null) {
+        AudioNode music = currentMusic.get();
+        if (music != null) {
             try {
-                currentMusic.pause();
+                music.pause();
             } catch (Exception e) {
                 System.err.println("Error pausing background music: " + e.getMessage());
             }
@@ -217,9 +227,10 @@ public class AudioManager {
      * Resume current background music
      */
     public void resumeBackgroundMusic() {
-        if (currentMusic != null) {
+        AudioNode music = currentMusic.get();
+        if (music != null) {
             try {
-                currentMusic.play();
+                music.play();
             } catch (Exception e) {
                 System.err.println("Error resuming background music: " + e.getMessage());
             }
@@ -366,7 +377,7 @@ public class AudioManager {
         loadBackgroundMusic("menu_music", "Sounds/menu_music.ogg");
 
         // Other sound effects with fallbacks
-        loadSoundEffectWithFallbacks("footstep", "Sounds/footstep.ogg");
+        loadSoundEffectWithFallbacks("footstep", "Sounds/footstep.wav");
         loadSoundEffectWithFallbacks("door_creak", "Sounds/door_creak.ogg");
         loadSoundEffectWithFallbacks("heartbeat", "Sounds/heartbeat.ogg");
 
@@ -424,7 +435,7 @@ public class AudioManager {
 
         if (!torchLoaded) {
             System.err.println("All torch sound loading attempts failed, torch will be silent");
-            soundEffects.put("torch_toggle", null);
+
         }
     }
 
@@ -435,16 +446,7 @@ public class AudioManager {
         System.out.println("Initializing minimal audio setup...");
 
         // Create placeholder entries so the game doesn't crash
-        backgroundMusic.put("horror_ambient", null);
-        backgroundMusic.put("menu_music", null);
 
-        soundEffects.put("footstep", null);
-        soundEffects.put("door_creak", null);
-        soundEffects.put("heartbeat", null);
-        soundEffects.put("torch_toggle", null);
-
-        ambientSounds.put("wind", null);
-        ambientSounds.put("whispers", null);
 
         System.out.println("Minimal audio setup complete - audio disabled.");
     }
@@ -459,7 +461,8 @@ public class AudioManager {
     }
 
     public boolean isMusicPlaying() {
-        return currentMusic != null && currentMusic.getStatus() == AudioSource.Status.Playing;
+        AudioNode music = currentMusic.get();
+        return music != null && music.getStatus() == AudioSource.Status.Playing;
     }
 
     public boolean hasSoundEffect(String key) {

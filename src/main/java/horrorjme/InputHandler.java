@@ -322,10 +322,14 @@ public class InputHandler implements ActionListener, AnalogListener {
      */
     public void update(float tpf) {
         // ONLY update camera POSITION to follow physics player
-        // Rotation is handled directly in onAnalog (no interference)
         if (playerControl != null && stateManager.getCurrentState() == GameStateManager.GameState.PLAYING) {
             Vector3f playerPos = playerControl.getPhysicsLocation();
             cam.setLocation(playerPos.add(0, 1.6f, 0)); // Eye level offset
+
+            // FIX: Continuously update movement direction when moving
+            if (inputFlags[FORWARD] || inputFlags[BACKWARD] || inputFlags[LEFT] || inputFlags[RIGHT]) {
+                updatePhysicsMovement();
+            }
         }
     }
 

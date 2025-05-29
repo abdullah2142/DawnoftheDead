@@ -20,6 +20,7 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
 import com.jme3.system.AppSettings;
 
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 
 /**
@@ -45,12 +46,29 @@ public class HorrorGameJME extends SimpleApplication {
     // Game world
     private Spatial doomMap;
     private DebugNoclipControl debugNoclip;
-
+    private final ConcurrentLinkedQueue<Runnable> sceneCommands = new ConcurrentLinkedQueue<>();
     // SMOOTH MOVEMENT SETTINGS
     private static final float MAP_SCALE = 0.055f;  // Smaller scale for DOOM map
     private static final Vector3f PLAYER_START_POS = new Vector3f(10f, 150f, 20f);
 
     private static final float MOUSE_SENSITIVITY = 0.5f; // Lower mouse sensitivity
+
+    private void processSceneCommands() {
+        Runnable command;
+        while ((command = sceneCommands.poll()) != null) {
+            try {
+                command.run();
+            } catch (Exception e) {
+                System.err.println("Error executing scene command: " + e.getMessage());
+            }
+        }
+    }
+
+    public void enqueueSceneOperation(Runnable operation) {
+        if (operation != null) {
+            sceneCommands.offer(operation);
+        }
+    }
 
     public static void main(String[] args) {
         HorrorGameJME app = new HorrorGameJME();
@@ -452,25 +470,24 @@ public class HorrorGameJME extends SimpleApplication {
 
     @Override
     public void simpleUpdate(float tpf) {
+        processSceneCommands();
         debugNoclip.update(tpf);
 
         if (gameStateManager.getCurrentState() == GameStateManager.GameState.PLAYING) {
-            // Update input handler
             if (inputHandler != null) {
                 inputHandler.update(tpf);
             }
 
-            // Update player smoothly
             if (player != null && !debugNoclip.isEnabled()) {
                 if (playerControl != null) {
                     Vector3f physicsPos = playerControl.getPhysicsLocation();
-                    player.syncPositionWithCamera(physicsPos);
+                    // DON'T sync rotation - only position
+                    player.setPositionOnly(physicsPos);  // NEW METHOD NEEDED
                 }
                 player.update(tpf);
                 hudManager.updateHUD(player);
             }
 
-            // Update entities
             if (entityManager != null) {
                 entityManager.update(tpf);
             }
