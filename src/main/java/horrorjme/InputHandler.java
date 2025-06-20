@@ -4,16 +4,13 @@ import com.jme3.bullet.control.CharacterControl;
 import com.jme3.input.InputManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
-import com.jme3.input.controls.ActionListener;
-import com.jme3.input.controls.AnalogListener;
-import com.jme3.input.controls.KeyTrigger;
-import com.jme3.input.controls.MouseAxisTrigger;
+import com.jme3.input.controls.*;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.math.FastMath;
 
 /**
- * Fixed InputHandler with smooth mouse handling and ground-based footsteps
+ * Enhanced InputHandler with proper mouse delta tracking for weapon sway AND lighting controls
  */
 public class InputHandler implements ActionListener, AnalogListener {
 
@@ -45,6 +42,11 @@ public class InputHandler implements ActionListener, AnalogListener {
     private float yaw = 0f;
     private float pitch = 0f;
 
+    // ENHANCED: Mouse delta tracking for weapon sway
+    private float currentMouseDeltaX = 0f;
+    private float currentMouseDeltaY = 0f;
+    private float mouseSmoothing = 0.85f; // How much previous deltas affect current (0.0 = no smoothing, 0.9 = heavy smoothing)
+
     public InputHandler(InputManager inputManager, GameStateManager stateManager, HorrorGameJME game) {
         this.inputManager = inputManager;
         this.stateManager = stateManager;
@@ -52,16 +54,16 @@ public class InputHandler implements ActionListener, AnalogListener {
         this.cam = game.getCamera();
         setupInputMappings();
 
-        System.out.println("Fixed InputHandler initialized:");
+        System.out.println("Enhanced InputHandler initialized with mouse delta tracking:");
         System.out.println("  Movement speed: " + moveSpeed);
         System.out.println("  Mouse sensitivity: " + mouseSensitivity);
-        System.out.println("  Mouse handling: DIRECT (like noclip)");
-        System.out.println("  Ground-based footsteps: ENABLED");
+        System.out.println("  Mouse sway smoothing: " + mouseSmoothing);
+        System.out.println("  Mouse handling: DIRECT with weapon sway support");
+        System.out.println("  Lighting controls: F9 (shadows), F10 (lightning), F11 (flicker)");
     }
 
     public void setPlayer(Player player) {
         this.player = player;
-        // DON'T sync mouse sensitivity - we handle it directly now
 
         // IMPORTANT: Pass CharacterControl to Player for ground detection
         if (this.playerControl != null && player != null) {
@@ -94,6 +96,8 @@ public class InputHandler implements ActionListener, AnalogListener {
         inputManager.addMapping("Jump", new KeyTrigger(KeyInput.KEY_SPACE));
         inputManager.addMapping("Sprint", new KeyTrigger(KeyInput.KEY_LSHIFT));
         inputManager.addMapping("ToggleTorch", new KeyTrigger(KeyInput.KEY_F));
+        inputManager.addMapping("Fire", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+        inputManager.addMapping("Reload", new KeyTrigger(KeyInput.KEY_R));
 
         // Menu controls
         inputManager.addMapping("MenuUp", new KeyTrigger(KeyInput.KEY_UP));
@@ -102,7 +106,12 @@ public class InputHandler implements ActionListener, AnalogListener {
         inputManager.addMapping("MenuBack", new KeyTrigger(KeyInput.KEY_ESCAPE));
         inputManager.addMapping("Escape", new KeyTrigger(KeyInput.KEY_ESCAPE));
 
-        // Mouse look - DIRECT CONTROL (like DebugNoclipControl)
+        // LIGHTING CONTROLS - Simplified
+        inputManager.addMapping("ToggleShadows", new KeyTrigger(KeyInput.KEY_F9));
+        inputManager.addMapping("Lightning", new KeyTrigger(KeyInput.KEY_F10));
+        inputManager.addMapping("ToggleFlicker", new KeyTrigger(KeyInput.KEY_F11));
+
+        // Mouse look - DIRECT CONTROL with enhanced delta tracking
         inputManager.addMapping("MouseLookX", new MouseAxisTrigger(MouseInput.AXIS_X, false));
         inputManager.addMapping("MouseLookX-", new MouseAxisTrigger(MouseInput.AXIS_X, true));
         inputManager.addMapping("MouseLookY", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
@@ -116,7 +125,11 @@ public class InputHandler implements ActionListener, AnalogListener {
                 // Menu
                 "MenuUp", "MenuDown", "MenuSelect", "MenuBack", "Escape",
                 // Mouse look
-                "MouseLookX", "MouseLookX-", "MouseLookY", "MouseLookY-"
+                "MouseLookX", "MouseLookX-", "MouseLookY", "MouseLookY-",
+                //Gun
+                "Fire", "Reload",
+                // LIGHTING CONTROLS - Simplified
+                "ToggleShadows", "Lightning", "ToggleFlicker"
         );
     }
 
@@ -129,12 +142,21 @@ public class InputHandler implements ActionListener, AnalogListener {
         yaw = (float) Math.atan2(-direction.x, -direction.z);
         pitch = (float) Math.asin(direction.y);
 
-        System.out.println("Mouse look enabled - DIRECT camera control active");
+        // Reset mouse deltas
+        currentMouseDeltaX = 0f;
+        currentMouseDeltaY = 0f;
+
+        System.out.println("Mouse look enabled - DIRECT camera control with weapon sway active");
     }
 
     public void disableMouseLook() {
         mouseEnabled = false;
         inputManager.setCursorVisible(true);
+
+        // Reset mouse deltas when disabling
+        currentMouseDeltaX = 0f;
+        currentMouseDeltaY = 0f;
+
         System.out.println("Mouse look disabled");
     }
 
@@ -183,6 +205,8 @@ public class InputHandler implements ActionListener, AnalogListener {
             return;
         }
 
+
+
         // Movement controls - Update player movement flags for footstep detection
         switch (name) {
             case "MoveForward":
@@ -220,6 +244,16 @@ public class InputHandler implements ActionListener, AnalogListener {
             case "ToggleTorch":
                 if (!isPressed && player != null) {
                     player.toggleTorch();
+                }
+                break;
+            case "Fire":
+                if (!isPressed && player != null) {
+                    player.fireWeapon();
+                }
+                break;
+            case "Reload":
+                if (!isPressed && player != null) {
+                    player.reload();
                 }
                 break;
         }
@@ -282,6 +316,7 @@ public class InputHandler implements ActionListener, AnalogListener {
 
         playerControl.setWalkDirection(walkDirection);
     }
+
     @Override
     public void onAnalog(String name, float value, float tpf) {
         // Only handle mouse look when in game and mouse is enabled
@@ -290,24 +325,44 @@ public class InputHandler implements ActionListener, AnalogListener {
             return;
         }
 
+        // ENHANCED: Track raw mouse movement for weapon sway
+        float rawMouseDeltaX = 0f;
+        float rawMouseDeltaY = 0f;
+
         // FIXED MOUSE INVERSION - Corrected axis handling
         switch (name) {
             case "MouseLookX":
                 // Moving mouse RIGHT should look RIGHT (positive yaw)
-                yaw -= value * mouseSensitivity;  // FIXED: was +=, now -=
+                yaw -= value * mouseSensitivity;
+                rawMouseDeltaX = -value; // Raw delta for weapon (negative because yaw is negative)
                 break;
             case "MouseLookX-":
                 // Moving mouse LEFT should look LEFT (negative yaw)
-                yaw += value * mouseSensitivity;  // FIXED: was -=, now +=
+                yaw += value * mouseSensitivity;
+                rawMouseDeltaX = value; // Raw delta for weapon (positive because yaw is positive)
                 break;
             case "MouseLookY":
                 // Moving mouse DOWN should look DOWN (positive pitch)
-                pitch -= value * mouseSensitivity;  // This was correct
+                pitch -= value * mouseSensitivity;
+                rawMouseDeltaY = -value; // Raw delta for weapon
                 break;
             case "MouseLookY-":
                 // Moving mouse UP should look UP (negative pitch)
-                pitch += value * mouseSensitivity;  // This was correct
+                pitch += value * mouseSensitivity;
+                rawMouseDeltaY = value; // Raw delta for weapon
                 break;
+        }
+
+        // ENHANCED: Smooth mouse deltas for weapon sway
+        if (rawMouseDeltaX != 0f || rawMouseDeltaY != 0f) {
+            // Apply smoothing to reduce jitter while maintaining responsiveness
+            currentMouseDeltaX = (currentMouseDeltaX * mouseSmoothing) + (rawMouseDeltaX * (1f - mouseSmoothing));
+            currentMouseDeltaY = (currentMouseDeltaY * mouseSmoothing) + (rawMouseDeltaY * (1f - mouseSmoothing));
+
+            // Pass mouse deltas to player for weapon sway
+            if (player != null) {
+                player.setMouseDeltas(currentMouseDeltaX, currentMouseDeltaY);
+            }
         }
 
         // Clamp pitch to prevent camera flipping
@@ -318,7 +373,7 @@ public class InputHandler implements ActionListener, AnalogListener {
     }
 
     /**
-     * Update method - ONLY handle camera position following
+     * Update method - decay mouse deltas over time for smooth weapon sway
      */
     public void update(float tpf) {
         // ONLY update camera POSITION to follow physics player
@@ -331,6 +386,35 @@ public class InputHandler implements ActionListener, AnalogListener {
                 updatePhysicsMovement();
             }
         }
+
+        // ENHANCED: Decay mouse deltas gradually for natural weapon sway
+        if (mouseEnabled) {
+            float decayRate = 8.0f; // How fast mouse deltas decay (higher = faster decay)
+            currentMouseDeltaX *= (1f - decayRate * tpf);
+            currentMouseDeltaY *= (1f - decayRate * tpf);
+
+            // Clamp very small values to zero to prevent tiny movements
+            if (Math.abs(currentMouseDeltaX) < 0.001f) currentMouseDeltaX = 0f;
+            if (Math.abs(currentMouseDeltaY) < 0.001f) currentMouseDeltaY = 0f;
+
+            // Continue passing decaying deltas to player for smooth weapon sway
+            if (player != null) {
+                player.setMouseDeltas(currentMouseDeltaX, currentMouseDeltaY);
+            }
+        }
+    }
+
+    // ENHANCED: Getters for mouse delta information
+    public float getCurrentMouseDeltaX() {
+        return currentMouseDeltaX;
+    }
+
+    public float getCurrentMouseDeltaY() {
+        return currentMouseDeltaY;
+    }
+
+    public float getMouseSensitivity() {
+        return mouseSensitivity;
     }
 
     // Configuration methods
@@ -340,8 +424,13 @@ public class InputHandler implements ActionListener, AnalogListener {
     }
 
     public void setMouseSensitivity(float sensitivity) {
-        this.mouseSensitivity = Math.max(1.05f, Math.min(0.50f, sensitivity));
+        this.mouseSensitivity = Math.max(0.5f, Math.min(3.0f, sensitivity));
         System.out.println("Mouse sensitivity set to: " + this.mouseSensitivity);
+    }
+
+    public void setMouseSmoothingForSway(float smoothing) {
+        this.mouseSmoothing = Math.max(0.0f, Math.min(0.95f, smoothing));
+        System.out.println("Mouse sway smoothing set to: " + this.mouseSmoothing);
     }
 
     public void cleanup() {
