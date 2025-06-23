@@ -72,7 +72,7 @@ public class HorrorGameJME extends SimpleApplication {
 
     // SMOOTH MOVEMENT SETTINGS
     private static final float MAP_SCALE = 1.50f;  // Smaller scale for DOOM map private static final float MAP_SCALE = 0.075f mapscale
-    private static final Vector3f PLAYER_START_POS = new Vector3f(10f, 0f, 20f);
+    private static final Vector3f PLAYER_START_POS = new Vector3f(10f, 0f, 20f); //player spawn
     private static final float MOUSE_SENSITIVITY = 0.5f; // Lower mouse sensitivity
 
     private void processSceneCommands() {
@@ -588,10 +588,10 @@ public class HorrorGameJME extends SimpleApplication {
 
         // Spawn a few zombies at different positions
         Vector3f[] zombiePositions = {
-                new Vector3f(5f, 150f, 5f),
-                new Vector3f(-8f, 150f, 12f),
-                new Vector3f(15f, 150f, -6f),
-                new Vector3f(-2f, 150f, -10f)
+                new Vector3f(5f, 0f, 5f),
+                new Vector3f(-8f, 0f, 12f),
+                new Vector3f(15f, 0f, -6f)
+
         };
 
         for (int i = 0; i < zombiePositions.length; i++) {
@@ -599,8 +599,8 @@ public class HorrorGameJME extends SimpleApplication {
             ZombieEnemy zombie = new ZombieEnemy(zombiePositions[i], assetManager, cam, bulletAppState);
 
             // Optional: customize zombie properties
-            zombie.setSpeed(1.5f + (i * 0.3f)); // Varying speeds
-            zombie.setDetectionRange(4f + (i * 1f)); // Varying detection ranges
+            zombie.setSpeed(1.5f + (i * 2.3f)); // Varying speeds
+            zombie.setDetectionRange(40f + (i * 1f)); // Varying detection ranges
 
             // Add to entity manager
             entityManager.addEntity(zombie);

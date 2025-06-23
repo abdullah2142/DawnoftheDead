@@ -66,7 +66,7 @@ public class ZombieEnemy extends SpriteEntity {
         setCollisionSize(1.0f, 4.5f); //zombie capsule
 
         // TEMPORARY DEBUG: Enable to see physics capsules
-         enablePhysicsDebugVisualization();  // ← Uncomment this line to see capsules
+         //enablePhysicsDebugVisualization();  // ← Uncomment this line to see capsules
 
     }
 
