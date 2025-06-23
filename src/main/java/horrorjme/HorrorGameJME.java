@@ -69,6 +69,7 @@ public class HorrorGameJME extends SimpleApplication {
     private FadeFilter fadeFilter;
     private ColorOverlayFilter noiseFilter;
     private float noiseTimer = 0f;
+    private ZombieSpawner zombieSpawner;
 
     // SMOOTH MOVEMENT SETTINGS
     private static final float MAP_SCALE = 1.50f;  // Smaller scale for DOOM map private static final float MAP_SCALE = 0.075f mapscale
@@ -269,7 +270,7 @@ public class HorrorGameJME extends SimpleApplication {
         hudManager = new HUDManager(assetManager, guiNode, settings);
         debugNoclip = new DebugNoclipControl(cam, inputManager);
         skyboxManager = new SkyboxManager(assetManager, rootNode);
-
+        zombieSpawner = new ZombieSpawner(assetManager, cam, bulletAppState, entityManager);
         // Initialize audio
         try {
             audioManager.initializeHorrorSounds();
@@ -585,28 +586,16 @@ public class HorrorGameJME extends SimpleApplication {
      * Spawn zombies in the game world
      */
     private void spawnZombies() {
-
-        // Spawn a few zombies at different positions
-        Vector3f[] zombiePositions = {
-                new Vector3f(5f, 0f, 5f),
-                new Vector3f(-8f, 0f, 12f),
-                new Vector3f(15f, 0f, -6f)
-
-        };
-
-        for (int i = 0; i < zombiePositions.length; i++) {
-            // UPDATED: Use new constructor with bulletAppState
-            ZombieEnemy zombie = new ZombieEnemy(zombiePositions[i], assetManager, cam, bulletAppState);
-
-            // Optional: customize zombie properties
-            zombie.setSpeed(1.5f + (i * 2.3f)); // Varying speeds
-            zombie.setDetectionRange(40f + (i * 1f)); // Varying detection ranges
-
-            // Add to entity manager
-            entityManager.addEntity(zombie);
-
+        if (zombieSpawner == null) {
+            System.err.println("ZombieSpawner not initialized!");
+            return;
         }
 
+        Vector3f playerStartPos = PLAYER_START_POS.mult(MAP_SCALE);
+        zombieSpawner.spawnInitialZombies(playerStartPos);
+
+        // Optional: Print configuration
+        System.out.println(zombieSpawner.getConfigurationSummary());
     }
 
     /**

@@ -10,35 +10,48 @@ import com.jme3.scene.shape.Cylinder;
 import com.jme3.texture.Texture;
 
 /**
- * Visible bullet tracer that flies through the air
- * Shows the bullet's path and impact point
+ * Enhanced bullet tracer with improved damage detection and raycast collision
+ * FIXED: Better collision detection for fast-moving bullets to prevent tunneling
  */
 public class BulletTracer extends Entity {
 
     private AssetManager assetManager;
-    private float bulletSpeed = 3800f;        // Fast bullet speed
-    private float maxRange = 100f;          // Maximum bullet travel distance
-    private float travelDistance = 0f;      // How far bullet has traveled
-    private float lifeTime = 2f;            // Maximum bullet lifetime
-    private float currentLifeTime = 0f;     // Current age of bullet
-    private boolean hasHit = false;         // Whether bullet hit something
+    private EntityManager entityManager; // ADDED: Reference for improved collision detection
+
+    private float bulletSpeed = 80f;        // Reduced from 3800f for better collision detection
+    private float bulletDamage = 25f;       // ADDED: Configurable damage
+    private float maxRange = 100f;
+    private float travelDistance = 0f;
+    private float lifeTime = 2f;
+    private float currentLifeTime = 0f;
+    private boolean hasHit = false;
     private Material bulletMaterial;
     private float originalAlpha = 1f;
-    private float fadeOutTime = 0.5f;       // How long bullet takes to fade
+    private float fadeOutTime = 0.5f;
+
+    // ADDED: For raycast collision detection
+    private Vector3f previousPosition;
+    private boolean useRaycastCollision = true;
 
     // Visual properties
-    private static final float BULLET_LENGTH = 0.15f;  // Length of bullet trail
-    private static final float BULLET_RADIUS = 0.02f;  // Thickness of bullet
+    private static final float BULLET_LENGTH = 0.15f;
+    private static final float BULLET_RADIUS = 0.05f;  // INCREASED: Better collision detection
 
     public BulletTracer(Vector3f startPosition, Vector3f direction, AssetManager assetManager) {
         super(EntityType.DECORATION, startPosition);
         this.assetManager = assetManager;
-        this.boundingRadius = BULLET_RADIUS;
+        this.boundingRadius = BULLET_RADIUS * 2f; // INCREASED: Better collision detection
+        this.previousPosition = startPosition.clone(); // ADDED: Track previous position
 
         // Normalize direction and set bullet velocity
         Vector3f bulletDirection = direction.normalize();
         this.velocity = bulletDirection.mult(bulletSpeed);
+    }
 
+    // ADDED: Constructor with EntityManager reference for improved collision
+    public BulletTracer(Vector3f startPosition, Vector3f direction, AssetManager assetManager, EntityManager entityManager) {
+        this(startPosition, direction, assetManager);
+        this.entityManager = entityManager;
     }
 
     @Override
@@ -70,7 +83,6 @@ public class BulletTracer extends Entity {
 
         // Orient bullet in direction of travel
         model.lookAt(position.add(velocity.normalize()), Vector3f.UNIT_Y);
-
     }
 
     @Override
@@ -81,9 +93,17 @@ public class BulletTracer extends Entity {
 
         // Move bullet
         if (!hasHit) {
+            // ADDED: Store previous position for raycast collision
+            previousPosition.set(position);
+
             Vector3f movement = velocity.mult(tpf);
             position.addLocal(movement);
             travelDistance += movement.length();
+
+            // ADDED: Check for raycast collision if moving fast
+            if (useRaycastCollision && entityManager != null) {
+                checkRaycastCollision();
+            }
 
             // Update model position
             if (model != null) {
@@ -94,7 +114,7 @@ public class BulletTracer extends Entity {
             if (travelDistance >= maxRange) {
                 hasHit = true;
                 velocity.set(0, 0, 0); // Stop bullet
-
+                System.out.println("DEBUG: Bullet " + entityId + " reached max range: " + maxRange);
             }
         }
 
@@ -118,37 +138,147 @@ public class BulletTracer extends Entity {
         }
     }
 
-    @Override
-    public void onCollision(Entity other) {
-        // Bullet hit something
-        if (!hasHit && other.getType() != EntityType.DECORATION) { // Don't hit other bullets/effects
-            hasHit = true;
-            velocity.set(0, 0, 0); // Stop bullet
+    /**
+     * ADDED: Improved collision detection using raycast to prevent tunneling
+     */
+    private void checkRaycastCollision() {
+        if (hasHit || entityManager == null) return;
 
-            // Deal damage if it's an enemy
-            if (other.getType() == EntityType.ENEMY) {
-                other.takeDamage(25f); // Bullet damage
-
+        // Check all entities for collision along bullet path
+        for (Entity entity : entityManager.getAllEntities()) {
+            if (entity == this || !entity.isActive() || entity.isDestroyed()) {
+                continue;
             }
 
+            // Skip other decoration entities (bullets, effects, etc.)
+            if (entity.getType() == EntityType.DECORATION) {
+                continue;
+            }
+
+            // Check if bullet path intersects with entity
+            if (checkLineIntersection(previousPosition, position, entity)) {
+                // Hit detected!
+                handleCollisionWithEntity(entity);
+                return; // Stop checking after first hit
+            }
+        }
+    }
+
+    /**
+     * ADDED: Check if line segment intersects with entity's bounding sphere
+     */
+    private boolean checkLineIntersection(Vector3f lineStart, Vector3f lineEnd, Entity entity) {
+        Vector3f entityPos = entity.getPosition();
+        float entityRadius = entity.getBoundingRadius();
+
+        // Vector from line start to entity center
+        Vector3f toEntity = entityPos.subtract(lineStart);
+
+        // Line direction vector
+        Vector3f lineDir = lineEnd.subtract(lineStart);
+        float lineLength = lineDir.length();
+
+        if (lineLength < 0.001f) return false; // No movement
+
+        lineDir.normalizeLocal();
+
+        // Project entity center onto line
+        float projection = toEntity.dot(lineDir);
+
+        // Clamp projection to line segment
+        projection = Math.max(0f, Math.min(lineLength, projection));
+
+        // Find closest point on line to entity center
+        Vector3f closestPoint = lineStart.add(lineDir.mult(projection));
+
+        // Check distance from entity center to closest point
+        float distance = closestPoint.distance(entityPos);
+
+        return distance <= entityRadius;
+    }
+
+    /**
+     * ADDED: Handle collision with specific entity
+     */
+    private void handleCollisionWithEntity(Entity entity) {
+        if (hasHit) return;
+
+        hasHit = true;
+        velocity.set(0, 0, 0); // Stop bullet
+
+        System.out.println("DEBUG: Bullet " + entityId + " hit " + entity.getEntityId());
+
+        // Deal damage based on entity type
+        if (entity.getType() == EntityType.ENEMY) {
+            System.out.println("DEBUG: Dealing " + bulletDamage + " damage to " + entity.getEntityId());
+            entity.takeDamage(bulletDamage);
+
+            // ADDED: Visual feedback for successful hit
+            createHitEffect(entity);
+        }
+
+        // ADDED: Mark bullet for quick destruction after hit
+        currentLifeTime = lifeTime - fadeOutTime; // Start fading immediately
+    }
+
+    /**
+     * ADDED: Create visual effect when bullet hits target
+     */
+    private void createHitEffect(Entity target) {
+        // Change bullet color to indicate hit
+        if (bulletMaterial != null) {
+            bulletMaterial.setColor("Color", new ColorRGBA(1f, 0.2f, 0.2f, 1f)); // Red hit color
+        }
+
+        // In a full implementation, you could spawn particles, blood effects, etc.
+        System.out.println("EFFECT: Hit effect created for " + target.getEntityId());
+    }
+
+    @Override
+    public void onCollision(Entity other) {
+        // This method is called by EntityManager's collision system
+        // We now also have raycast collision, but keep this as backup
+
+        if (!hasHit && other.getType() != EntityType.DECORATION) {
+            System.out.println("DEBUG: Standard collision - Bullet " + entityId + " hit " + other.getEntityId());
+            handleCollisionWithEntity(other);
         }
     }
 
     @Override
-    public void onDestroy() {}
+    public void onDestroy() {
+        System.out.println("DEBUG: Bullet " + entityId + " destroyed after traveling " +
+                String.format("%.1f", travelDistance) + " units");
+    }
 
     /**
-     * Static factory method for easy creation from WeaponEffectsManager
+     * UPDATED: Static factory method with EntityManager reference
      */
     public static BulletTracer createBulletTracer(Vector3f weaponPosition, Vector3f cameraDirection,
-                                                  AssetManager assetManager) {
+                                                  AssetManager assetManager, EntityManager entityManager) {
         // Calculate bullet spawn position (slightly forward from weapon)
         Vector3f bulletStartPos = weaponPosition.add(cameraDirection.mult(0.5f));
 
+        return new BulletTracer(bulletStartPos, cameraDirection, assetManager, entityManager);
+    }
+
+    /**
+     * Original factory method (for backward compatibility)
+     */
+    public static BulletTracer createBulletTracer(Vector3f weaponPosition, Vector3f cameraDirection,
+                                                  AssetManager assetManager) {
+        Vector3f bulletStartPos = weaponPosition.add(cameraDirection.mult(0.5f));
         return new BulletTracer(bulletStartPos, cameraDirection, assetManager);
     }
 
-    // ==== CONFIGURATION METHODS ====
+    // ==== ENHANCED CONFIGURATION METHODS ====
+
+    /**
+     * ADDED: Set bullet damage
+     */
+    public void setBulletDamage(float damage) {
+        this.bulletDamage = Math.max(1f, damage);
+    }
 
     /**
      * Set bullet speed (units per second)
@@ -160,7 +290,6 @@ public class BulletTracer extends Entity {
             Vector3f direction = velocity.normalize();
             this.velocity = direction.mult(this.bulletSpeed);
         }
-
     }
 
     /**
@@ -168,7 +297,6 @@ public class BulletTracer extends Entity {
      */
     public void setMaxRange(float range) {
         this.maxRange = Math.max(5f, range);
-
     }
 
     /**
@@ -176,7 +304,6 @@ public class BulletTracer extends Entity {
      */
     public void setLifeTime(float time) {
         this.lifeTime = Math.max(0.1f, time);
-
     }
 
     /**
@@ -185,54 +312,63 @@ public class BulletTracer extends Entity {
     public void setBulletColor(ColorRGBA color) {
         if (bulletMaterial != null) {
             bulletMaterial.setColor("Color", color);
-
         }
     }
 
     /**
-     * Preset configurations for different bullet types
+     * ADDED: Enable/disable raycast collision detection
+     */
+    public void setRaycastCollisionEnabled(boolean enabled) {
+        this.useRaycastCollision = enabled;
+    }
+
+    /**
+     * UPDATED: Preset configurations with damage values
      */
     public void setBulletPreset(BulletPreset preset) {
         switch (preset) {
             case FAST_RIFLE:
                 setBulletSpeed(120f);
+                setBulletDamage(35f);       // ADDED: High damage
                 setMaxRange(150f);
                 setLifeTime(2f);
-                setBulletColor(new ColorRGBA(1f, 1f, 0.9f, 1f)); // Bright white
+                setBulletColor(new ColorRGBA(1f, 1f, 0.9f, 1f));
                 break;
 
             case PISTOL_ROUND:
                 setBulletSpeed(80f);
+                setBulletDamage(25f);       // ADDED: Medium damage
                 setMaxRange(100f);
                 setLifeTime(1.5f);
-                setBulletColor(new ColorRGBA(1f, 1f, 0.8f, 1f)); // Slightly yellow
+                setBulletColor(new ColorRGBA(1f, 1f, 0.8f, 1f));
                 break;
 
             case SHOTGUN_PELLET:
                 setBulletSpeed(60f);
+                setBulletDamage(15f);       // ADDED: Lower damage per pellet
                 setMaxRange(50f);
                 setLifeTime(1f);
-                setBulletColor(new ColorRGBA(1f, 0.9f, 0.7f, 1f)); // Warm white
+                setBulletColor(new ColorRGBA(1f, 0.9f, 0.7f, 1f));
                 break;
 
             case TRACER_ROUND:
                 setBulletSpeed(100f);
+                setBulletDamage(30f);       // ADDED: Good damage
                 setMaxRange(200f);
                 setLifeTime(3f);
-                setBulletColor(new ColorRGBA(1f, 0.3f, 0.1f, 1f)); // Bright red tracer
+                setBulletColor(new ColorRGBA(1f, 0.3f, 0.1f, 1f));
                 break;
         }
-
     }
 
     public enum BulletPreset {
-        FAST_RIFLE,      // High-velocity rifle round
+        FAST_RIFLE,      // High-velocity, high-damage rifle round
         PISTOL_ROUND,    // Standard pistol bullet
-        SHOTGUN_PELLET,  // Slower, shorter range pellet
-        TRACER_ROUND     // Visible tracer ammunition
+        SHOTGUN_PELLET,  // Shorter range, moderate damage pellet
+        TRACER_ROUND     // Visible tracer ammunition with good damage
     }
 
-    // ==== STATUS GETTERS ====
+    // ==== ENHANCED STATUS GETTERS ====
 
     public boolean hasHitTarget() {
         return hasHit;
@@ -250,7 +386,23 @@ public class BulletTracer extends Entity {
         return bulletSpeed;
     }
 
+    public float getBulletDamage() {
+        return bulletDamage;
+    }
+
     public Vector3f getCurrentVelocity() {
         return velocity.clone();
+    }
+
+    public boolean isRaycastCollisionEnabled() {
+        return useRaycastCollision;
+    }
+
+    /**
+     * ADDED: Get debug information about bullet state
+     */
+    public String getDebugInfo() {
+        return String.format("Bullet %s: Speed=%.1f, Damage=%.1f, Range=%.1f/%.1f, Hit=%s, Age=%.2fs",
+                entityId, bulletSpeed, bulletDamage, travelDistance, maxRange, hasHit, currentLifeTime);
     }
 }

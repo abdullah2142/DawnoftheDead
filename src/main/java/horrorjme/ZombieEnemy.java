@@ -22,8 +22,11 @@ public class ZombieEnemy extends SpriteEntity {
     private float lastAttackTime = 0f;
     private float attackCooldown = 2f;
 
+    private float deathTimer = 0f;
+    private static final float DEATH_ANIMATION_TIME = 1.2f;
+
     // ADDED: Sprite appearance settings
-    private float spriteScale = 0.7f;           // Scale factor for zombie sprites (0.8 = 80% size)
+    private float spriteScale = 0.5f;           // Scale factor for zombie sprites (0.8 = 80% size)
     private Vector3f spriteOffset = new Vector3f(0f, 0, 0); // Offset for fine-tuning position
 
     private void adjustSpritePosition() {
@@ -60,13 +63,14 @@ public class ZombieEnemy extends SpriteEntity {
         // Configure zombie properties
         this.health = 50f;
         this.maxHealth = 50f;
-        this.boundingRadius = 0.8f;
+        this.boundingRadius = 1.8f;
+        setBoundingHeight(3.0f);
 
         // Configure collision size (radius, height)
         setCollisionSize(1.0f, 4.5f); //zombie capsule
 
         // TEMPORARY DEBUG: Enable to see physics capsules
-         //enablePhysicsDebugVisualization();  // ← Uncomment this line to see capsules
+        // enablePhysicsDebugVisualization();  // ← Uncomment this line to see capsules
 
     }
 
@@ -119,17 +123,26 @@ public class ZombieEnemy extends SpriteEntity {
 
     @Override
     protected void updateBehavior(float tpf) {
-        // Update timers
+        // Handle death state specially
+        if (currentState == ZombieState.DEAD) {
+            deathTimer += tpf;
+            desiredDirection.set(0, 0, 0);
+            velocity.set(0, 0, 0);
+
+            // Destroy zombie after death animation has had time to play
+            if (deathTimer >= DEATH_ANIMATION_TIME) {
+                if (!destroyed) {
+                    System.out.println("Zombie " + entityId + " death animation complete - destroying");
+                    destroy();
+                }
+            }
+            return; // Don't do normal AI when dead
+        }
+
+        // Normal behavior for living zombies
         lastAttackTime += tpf;
-
-        // Update AI state machine
         updateAI(tpf);
-
-        // Update animation based on state
         updateAnimation();
-
-        // Set movement velocity based on AI decisions
-        // Physics system will handle actual movement and collisions
         velocity.set(desiredDirection.mult(speed));
     }
 
@@ -255,10 +268,12 @@ public class ZombieEnemy extends SpriteEntity {
     public void takeDamage(float damage) {
         if (currentState == ZombieState.DEAD) return;
 
-        super.takeDamage(damage);
+        // Check if this damage would kill the zombie BEFORE calling super.takeDamage
+        boolean willDie = (health - damage) <= 0;
 
-        if (health <= 0) {
-            // Zombie dies
+        if (willDie) {
+            // Handle death without calling super.takeDamage (which would call destroy())
+            health = 0;
             currentState = ZombieState.DEAD;
             playAnimation("Dead");
 
@@ -266,9 +281,12 @@ public class ZombieEnemy extends SpriteEntity {
             desiredDirection.set(0, 0, 0);
             velocity.set(0, 0, 0);
 
+            System.out.println("Zombie " + entityId + " is dying - playing death animation");
+        } else {
+            // Normal damage - won't kill the zombie
+            super.takeDamage(damage);
         }
     }
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -288,6 +306,17 @@ public class ZombieEnemy extends SpriteEntity {
             applySpriteScaling();
         }
 
+    }
+    public void destroy() {
+        // Only allow destruction if we're already in death state and timer has elapsed
+        if (currentState == ZombieState.DEAD && deathTimer >= DEATH_ANIMATION_TIME) {
+            System.out.println("Zombie " + entityId + " final destruction");
+            super.destroy();
+        } else if (currentState != ZombieState.DEAD) {
+            // Allow immediate destruction if not dying (e.g., game cleanup)
+            super.destroy();
+        }
+        // Otherwise, death in progress - don't destroy yet
     }
 
     /**

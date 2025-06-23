@@ -74,6 +74,8 @@ public abstract class SpriteEntity extends Entity {
         }
 
         try {
+            System.out.println("Creating physics body for " + entityId + " at position: " + position);
+
             // Create collision shape
             collisionShape = new CapsuleCollisionShape(collisionRadius, collisionHeight);
 
@@ -81,12 +83,17 @@ public abstract class SpriteEntity extends Entity {
             rigidBody = new RigidBodyControl(collisionShape, 0f);
             rigidBody.setKinematic(true);
 
-            // Set initial physics location
+            // Add to model FIRST
+            model.addControl(rigidBody);
+
+            // Add to physics space SECOND
+            bulletAppState.getPhysicsSpace().add(rigidBody);
+
+            // CRITICAL FIX: Set physics location AFTER adding to physics space
             rigidBody.setPhysicsLocation(position);
 
-            // Add to model and physics space
-            model.addControl(rigidBody);
-            bulletAppState.getPhysicsSpace().add(rigidBody);
+            System.out.println("Physics body created for " + entityId +
+                    " - Physics location: " + rigidBody.getPhysicsLocation());
 
         } catch (Exception e) {
             System.err.println("Failed to create physics for " + entityId + ": " + e.getMessage());

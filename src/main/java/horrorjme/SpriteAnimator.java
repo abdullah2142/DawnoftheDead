@@ -290,6 +290,47 @@ public class SpriteAnimator {
 
         }
     }
+    public void loadAnimationState(String animationName, String basePath, int frameCount, boolean loops) {
+        Texture2D[] frames = new Texture2D[frameCount];
+
+        for (int i = 0; i < frameCount; i++) {
+            String filename = basePath + animationName + " (" + (i + 1) + ").png";
+
+            try {
+                Texture2D texture = (Texture2D) assetManager.loadTexture(filename);
+                texture.setMagFilter(Texture.MagFilter.Nearest);
+                texture.setMinFilter(Texture.MinFilter.NearestNoMipMaps);
+                frames[i] = texture;
+            } catch (Exception e) {
+                System.err.println("Failed to load frame: " + filename);
+                e.printStackTrace();
+                return;
+            }
+        }
+
+        animationFrames.put(animationName, frames);
+
+        float defaultFrameDuration = 0.1f;
+        AnimationSequence sequence = new AnimationSequence(
+                animationName, 0, frameCount, defaultFrameDuration, loops
+        );
+        animations.put(animationName, sequence);
+
+        if (!manualSizeOverride && frames.length > 0) {
+            updateQuadSizeFromTexture(frames[0]);
+        }
+    }
+
+    public void setAnimationLooping(String animationName, boolean loops) {
+        AnimationSequence existing = animations.get(animationName);
+        if (existing != null) {
+            AnimationSequence newSequence = new AnimationSequence(
+                    existing.name, existing.startFrame, existing.endFrame,
+                    existing.frameDuration, loops
+            );
+            animations.put(animationName, newSequence);
+        }
+    }
 
     /**
      * Stop current animation

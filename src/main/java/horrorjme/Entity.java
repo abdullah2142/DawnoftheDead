@@ -6,6 +6,7 @@ import com.jme3.scene.Spatial;
 
 /**
  * Base class for all game entities (enemies, items, pickups, etc.)
+ * Updated with bounding height for better collision detection
  */
 public abstract class Entity {
 
@@ -26,7 +27,9 @@ public abstract class Entity {
     protected EntityType type;
     protected Spatial model;
     protected Node parentNode;
+
     protected float boundingRadius;
+    protected float boundingHeight;  // ADDED: Height for better collision detection
 
     // Unique identifier
     protected String entityId;
@@ -40,7 +43,11 @@ public abstract class Entity {
         this.destroyed = false;
         this.health = 100f;
         this.maxHealth = 100f;
+
+        // Default bounding volume
         this.boundingRadius = 0.5f;
+        this.boundingHeight = 1.0f;  // ADDED: Default height
+
         this.entityId = type.name() + "_" + (nextId++);
     }
 
@@ -78,15 +85,31 @@ public abstract class Entity {
     }
 
     /**
-     * Check if this entity collides with another entity
+     * UPDATED: Check collision using radius + height instead of just radius
      */
     public boolean collidesWith(Entity other) {
         if (other == null || !other.isActive() || other.isDestroyed()) {
             return false;
         }
 
-        float distance = position.distance(other.getPosition());
-        return distance < (this.boundingRadius + other.getBoundingRadius());
+        // Check horizontal distance (2D, ignoring Y)
+        float dx = this.position.x - other.position.x;
+        float dz = this.position.z - other.position.z;
+        float horizontalDistance = (float) Math.sqrt(dx * dx + dz * dz);
+        float combinedRadius = this.boundingRadius + other.getBoundingRadius();
+
+        if (horizontalDistance >= combinedRadius) {
+            return false; // Too far apart horizontally
+        }
+
+        // Check vertical overlap
+        float thisBottom = this.position.y;
+        float thisTop = this.position.y + this.boundingHeight;
+        float otherBottom = other.position.y;
+        float otherTop = other.position.y + other.boundingHeight;
+
+        // Entities overlap if: thisBottom < otherTop AND otherBottom < thisTop
+        return thisBottom < otherTop && otherBottom < thisTop;
     }
 
     /**
@@ -140,6 +163,7 @@ public abstract class Entity {
     }
 
     // Getters and Setters
+
     public Vector3f getPosition() { return position.clone(); }
     public void setPosition(Vector3f position) {
         this.position.set(position);
@@ -173,8 +197,16 @@ public abstract class Entity {
 
     public Spatial getModel() { return model; }
 
+    // Bounding volume getters and setters
     public float getBoundingRadius() { return boundingRadius; }
-    public void setBoundingRadius(float radius) { this.boundingRadius = radius; }
+    public void setBoundingRadius(float radius) {
+        this.boundingRadius = Math.max(0.1f, radius);
+    }
+
+    public float getBoundingHeight() { return boundingHeight; }  // ADDED
+    public void setBoundingHeight(float height) {               // ADDED
+        this.boundingHeight = Math.max(0.1f, height);
+    }
 
     public Node getParentNode() { return parentNode; }
 }
