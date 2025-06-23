@@ -49,8 +49,7 @@ public class ModelBasedMuzzleFlash {
         this.camera = camera;
         this.activeFlashes = new ArrayList<>();
 
-        System.out.println("Simple Muzzle Flash system initialized");
-        System.out.println("Flash settings: Duration=" + flashDuration + "s, Intensity=" + flashIntensity + ", Radius=" + flashRadius);
+
     }
 
     /**
@@ -73,7 +72,6 @@ public class ModelBasedMuzzleFlash {
         FlashInstance flash = new FlashInstance(flashLight, flashDuration, flashIntensity);
         activeFlashes.add(flash);
 
-        System.out.println("Muzzle flash created - bright light illuminating surroundings");
     }
 
     /**
@@ -124,7 +122,7 @@ public class ModelBasedMuzzleFlash {
             rootNode.removeLight(flash.light);
         }
         activeFlashes.clear();
-        System.out.println("Muzzle flash system cleaned up");
+
     }
 
     // ==== CONFIGURATION METHODS ====
@@ -134,7 +132,7 @@ public class ModelBasedMuzzleFlash {
      */
     public void setFlashDuration(float duration) {
         this.flashDuration = Math.max(0.01f, Math.min(0.5f, duration));
-        System.out.println("Flash duration set to: " + this.flashDuration + " seconds");
+
     }
 
     /**
@@ -142,7 +140,7 @@ public class ModelBasedMuzzleFlash {
      */
     public void setFlashIntensity(float intensity) {
         this.flashIntensity = Math.max(1f, intensity);
-        System.out.println("Flash intensity set to: " + this.flashIntensity);
+
     }
 
     /**
@@ -150,7 +148,7 @@ public class ModelBasedMuzzleFlash {
      */
     public void setFlashRadius(float radius) {
         this.flashRadius = Math.max(1f, radius);
-        System.out.println("Flash radius set to: " + this.flashRadius + " units");
+
     }
 
     /**
@@ -158,7 +156,7 @@ public class ModelBasedMuzzleFlash {
      */
     public void setFlashColor(ColorRGBA color) {
         this.flashColor = color.clone();
-        System.out.println("Flash color set to: " + color);
+
     }
 
     /**
@@ -166,7 +164,7 @@ public class ModelBasedMuzzleFlash {
      */
     public void setMuzzleOffset(float rightOffset, float downOffset, float forwardOffset) {
         this.muzzleOffset.set(rightOffset, downOffset, forwardOffset);
-        System.out.println("Flash position set to: Right=" + rightOffset + ", Down=" + downOffset + ", Forward=" + forwardOffset);
+
     }
 
     /**
@@ -202,7 +200,7 @@ public class ModelBasedMuzzleFlash {
                 setFlashColor(new ColorRGBA(1f, 1f, 0.9f, 1f)); // Bright white
                 break;
         }
-        System.out.println("Applied flash preset: " + preset);
+
     }
 
     public enum FlashPreset {

@@ -8,8 +8,8 @@ version '1.0-SNAPSHOT'
 
 // Java version compatibility
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
     modularity.inferModulePath = false
 }
 
@@ -19,6 +19,8 @@ application {
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }  // For Minie
+    maven { url 'https://dl.bintray.com/jmonkeyengine/org.jmonkeyengine' }
 }
 
 dependencies {
@@ -43,6 +45,7 @@ dependencies {
     implementation "org.jmonkeyengine:jme3-blender:3.3.2-stable"     // Blender file support
 
 }
+
 
 // Runtime JVM arguments optimized for physics games
 run {

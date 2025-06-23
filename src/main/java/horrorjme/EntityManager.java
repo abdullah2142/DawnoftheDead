@@ -66,7 +66,6 @@ public class EntityManager {
         // OPTIMIZATION: Track initial position
         previousPositions.put(id, entity.getPosition().clone());
 
-        System.out.println("Added entity: " + id + " of type " + entity.getType());
     }
 
     /**
@@ -88,7 +87,6 @@ public class EntityManager {
         // Detach from scene
         entity.detachFromScene();
 
-        System.out.println("Removed entity: " + entityId);
     }
 
     /**
@@ -327,16 +325,15 @@ public class EntityManager {
 
     // OPTIMIZATION: Performance statistics
     public void printPerformanceStats() {
-        System.out.println("=== EntityManager Performance Stats ===");
-        System.out.println("Total entities: " + entities.size());
-        System.out.println("Spatial grid cells: " + spatialGrid.size());
-        System.out.println("Collision pairs processed this frame: " + processedCollisionPairs.size());
+
+
+
 
         int totalEntitiesInGrid = 0;
         for (Set<Entity> cell : spatialGrid.values()) {
             totalEntitiesInGrid += cell.size();
         }
-        System.out.println("Total entity-cell mappings: " + totalEntitiesInGrid);
-        System.out.println("========================================");
+
+
     }
 }

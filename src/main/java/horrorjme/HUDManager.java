@@ -77,7 +77,6 @@ public class HUDManager {
 
         guiNode.attachChild(hudNode);
 
-        System.out.println("HUDManager initialized.");
     }
 
     /**
@@ -174,7 +173,6 @@ public class HUDManager {
             hudNode.detachChild(debugText);
         }
 
-        System.out.println("Debug info " + (showDebugInfo ? "ENABLED" : "DISABLED"));
     }
 
     /**
@@ -205,7 +203,7 @@ public class HUDManager {
         hudNode.attachChild(tempText);
 
         // In a real implementation, you'd want a timer system to remove this
-        System.out.println("Temporary message: " + message + " (would fade after " + duration + "s)");
+
     }
 
     // ==== VISIBILITY METHODS ====
@@ -233,7 +231,6 @@ public class HUDManager {
         }
         hudNode.detachAllChildren();
 
-        System.out.println("HUDManager cleaned up");
     }
 
     // ==== GETTERS ====
@@ -265,7 +262,6 @@ public class HUDManager {
                 break;
         }
 
-        System.out.println("Applied HUD preset: " + preset);
     }
 
     public enum HUDPreset {

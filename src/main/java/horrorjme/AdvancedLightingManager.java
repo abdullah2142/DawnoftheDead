@@ -57,14 +57,12 @@ public class AdvancedLightingManager {
         this.rootNode = rootNode;
         this.camera = camera;
 
-        System.out.println("AdvancedLightingManager initialized");
     }
 
     /**
      * Initialize the complete lighting and shadow system
      */
     public void initializeLightingSystem() {
-        System.out.println("Setting up advanced lighting and shadows...");
 
         // Clear existing lights
         rootNode.getLocalLightList().clear();
@@ -80,14 +78,12 @@ public class AdvancedLightingManager {
             setupShadowRendering();
         }
 
-        System.out.println("Advanced lighting system initialized successfully");
     }
 
     /**
      * Setup base ambient and directional lighting - Single optimized configuration
      */
     private void setupBaseLighting() {
-        System.out.println("Setting up single optimized lighting configuration...");
 
         // Ambient light - balanced for horror atmosphere with good visibility
         ambientLight = new AmbientLight();
@@ -106,7 +102,6 @@ public class AdvancedLightingManager {
         fillLight.setColor(new ColorRGBA(0.2f, 0.2f, 0.25f, 1.0f));  // Cool dim fill
         rootNode.addLight(fillLight);
 
-        System.out.println("Single lighting configuration applied");
     }
 
     /**
@@ -114,8 +109,6 @@ public class AdvancedLightingManager {
      */
     private void setupAtmosphericLighting() {
         if (!dynamicLightsEnabled) return;
-
-        System.out.println("Setting up atmospheric lighting...");
 
         // Create atmospheric point lights
         atmosphericLights = new PointLight[4];
@@ -148,14 +141,12 @@ public class AdvancedLightingManager {
         playerSpotLight.setColor(new ColorRGBA(0.8f, 0.8f, 1.0f, 1.0f));
         rootNode.addLight(playerSpotLight);
 
-        System.out.println("Atmospheric lighting setup complete");
     }
 
     /**
      * Setup shadow rendering for realistic shadows
      */
     private void setupShadowRendering() {
-        System.out.println("Setting up shadow rendering...");
 
         try {
             // Main directional light shadows (for overall scene shadows)
@@ -171,8 +162,6 @@ public class AdvancedLightingManager {
 
             viewPort.addProcessor(mainShadowRenderer);
 
-            System.out.println("Directional light shadows enabled");
-
             // Point light shadows (for atmospheric lights)
             if (atmosphericLights != null && atmosphericLights.length > 0) {
                 pointShadowRenderer = new PointLightShadowRenderer(assetManager, 512); // Smaller for performance
@@ -180,7 +169,7 @@ public class AdvancedLightingManager {
                 pointShadowRenderer.setShadowIntensity(0.5f);
 
                 viewPort.addProcessor(pointShadowRenderer);
-                System.out.println("Point light shadows enabled");
+
             }
 
             // Spot light shadows (for player area lighting)
@@ -190,10 +179,8 @@ public class AdvancedLightingManager {
                 spotShadowRenderer.setShadowIntensity(0.4f);
 
                 viewPort.addProcessor(spotShadowRenderer);
-                System.out.println("Spot light shadows enabled");
-            }
 
-            System.out.println("Shadow rendering setup complete");
+            }
 
         } catch (Exception e) {
             System.err.println("Failed to setup shadow rendering: " + e.getMessage());
@@ -272,7 +259,6 @@ public class AdvancedLightingManager {
         rootNode.addLight(tempLight);
 
         // In a real implementation, you'd want a timer system to remove this
-        System.out.println("Temporary light added at " + position + " for " + duration + " seconds");
 
         return tempLight;
     }
@@ -289,7 +275,6 @@ public class AdvancedLightingManager {
         ambientLight.setColor(flashColor);
 
         // In a real implementation, you'd gradually fade back to original
-        System.out.println("Lightning flash created - intensity: " + intensity);
 
         // Immediately restore for now (you'd want to animate this)
         ambientLight.setColor(originalAmbient);
@@ -316,22 +301,20 @@ public class AdvancedLightingManager {
             setupShadowRendering();
         }
 
-        System.out.println("Shadows " + (enabled ? "enabled" : "disabled"));
     }
 
     public void setDynamicLightsEnabled(boolean enabled) {
         this.dynamicLightsEnabled = enabled;
-        System.out.println("Dynamic lights " + (enabled ? "enabled" : "disabled"));
+
     }
 
     public void setAtmosphericFlickerEnabled(boolean enabled) {
         this.atmosphericFlickerEnabled = enabled;
-        System.out.println("Atmospheric light flickering " + (enabled ? "enabled" : "disabled"));
+
     }
 
     public void setShadowQuality(int mapSize) {
         this.shadowMapSize = mapSize;
-        System.out.println("Shadow quality set to: " + mapSize + "x" + mapSize);
 
         // You'd need to recreate shadow renderers to apply this change
         if (shadowsEnabled) {
@@ -388,7 +371,6 @@ public class AdvancedLightingManager {
                 }
             }
 
-            System.out.println("Emergency lighting activated");
         } else {
             // Restore normal lighting - back to original values
             ambientLight.setColor(new ColorRGBA(0.15f, 0.12f, 0.18f, 1.0f));
@@ -403,7 +385,6 @@ public class AdvancedLightingManager {
                 atmosphericLights[3].setColor(new ColorRGBA(0.8f, 1.0f, 0.8f, 1.0f)); // Green
             }
 
-            System.out.println("Normal lighting restored");
         }
     }
 
@@ -411,7 +392,6 @@ public class AdvancedLightingManager {
      * Cleanup all lighting and shadow resources
      */
     public void cleanup() {
-        System.out.println("Cleaning up advanced lighting system...");
 
         // Remove shadow processors
         if (mainShadowRenderer != null) {
@@ -427,6 +407,5 @@ public class AdvancedLightingManager {
         // Clear lights from scene
         rootNode.getLocalLightList().clear();
 
-        System.out.println("Advanced lighting system cleaned up");
     }
 }

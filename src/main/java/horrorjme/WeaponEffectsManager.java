@@ -52,7 +52,6 @@ public class WeaponEffectsManager {
         this.weaponCamera = new WeaponCamera(camera);
         this.weaponCrosshair = new WeaponCrosshair(assetManager, guiNode, camera, weaponCamera);
 
-        System.out.println("Simplified WeaponEffectsManager initialized.");
     }
 
     /**
@@ -135,7 +134,7 @@ public class WeaponEffectsManager {
     public void setWeaponOffset(float rightOffset, float downOffset, float forwardOffset) {
         if (weaponCamera != null) {
             weaponCamera.setWeaponOffset(rightOffset, downOffset, forwardOffset);
-            System.out.println("Weapon camera offset set to: " + rightOffset + ", " + downOffset + ", " + forwardOffset);
+
         }
     }
 
@@ -152,7 +151,7 @@ public class WeaponEffectsManager {
      */
     public void setupWeaponPreset(WeaponType weaponType) {
         this.currentWeaponType = weaponType;
-        System.out.println("Applied weapon preset: " + weaponType);
+
     }
 
 
@@ -231,6 +230,5 @@ public class WeaponEffectsManager {
             weaponCrosshair.cleanup();
         }
 
-        System.out.println("WeaponEffectsManager cleaned up");
     }
 }

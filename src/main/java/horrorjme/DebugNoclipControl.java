@@ -82,20 +82,19 @@ public class DebugNoclipControl implements ActionListener, AnalogListener {
         enabled = !enabled;
 
         if (enabled) {
-            System.out.println("NOCLIP MODE ENABLED (F1 to toggle)");
+
             // Add movement listeners
             inputManager.addListener(this,
                     "Noclip_Forward", "Noclip_Backward",
                     "Noclip_Left", "Noclip_Right",
                     "Noclip_Up", "Noclip_Down", "Noclip_SpeedUp");
         } else {
-            System.out.println("NOCLIP MODE DISABLED");
 
             // IMPORTANT: Sync player position with camera before disabling noclip
             if (player != null) {
                 Vector3f currentCameraPos = cam.getLocation().clone();
                 player.syncPositionWithCamera(currentCameraPos);
-                System.out.println("Player position synced to: " + currentCameraPos);
+
             }
 
             // Remove movement listeners

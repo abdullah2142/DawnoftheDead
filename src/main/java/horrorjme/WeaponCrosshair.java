@@ -44,7 +44,6 @@ public class WeaponCrosshair {
 
         initializeCrosshair();
 
-        System.out.println("WeaponCrosshair initialized - aligned to weapon camera");
     }
 
     /**
@@ -116,7 +115,6 @@ public class WeaponCrosshair {
             }
         }
 
-        System.out.println("Weapon crosshair visibility: " + visible);
     }
 
     /**
@@ -131,7 +129,6 @@ public class WeaponCrosshair {
             crosshair.setHeight(size);
         }
 
-        System.out.println("Crosshair size set to: " + size);
     }
 
     /**
@@ -145,7 +142,6 @@ public class WeaponCrosshair {
             crosshair.getMaterial().setColor("Color", color);
         }
 
-        System.out.println("Crosshair color set to: " + color);
     }
 
     /**
@@ -154,7 +150,7 @@ public class WeaponCrosshair {
      */
     public void setAimDistance(float distance) {
         this.aimDistance = Math.max(1f, distance);
-        System.out.println("Crosshair aim distance set to: " + this.aimDistance);
+
     }
 
     // ==== STATUS METHODS ====
@@ -202,6 +198,5 @@ public class WeaponCrosshair {
         weaponCamera = null;
         playerCamera = null;
 
-        System.out.println("WeaponCrosshair cleaned up");
     }
 }

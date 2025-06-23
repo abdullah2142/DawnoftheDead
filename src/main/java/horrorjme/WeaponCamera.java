@@ -35,7 +35,6 @@ public class WeaponCamera {
         this.playerCamera = playerCamera;
         initializeWeaponCamera();
 
-        System.out.println("WeaponCamera initialized with offset: " + weaponOffset);
     }
 
     /**
@@ -50,7 +49,6 @@ public class WeaponCamera {
         this.weaponOffset = new Vector3f(rightOffset, -downOffset, forwardOffset);
         initializeWeaponCamera();
 
-        System.out.println("WeaponCamera initialized with custom offset: " + weaponOffset);
     }
 
     /**
@@ -142,7 +140,7 @@ public class WeaponCamera {
         this.weaponOffset.set(rightOffset, -downOffset, forwardOffset);
 
         if (debugEnabled) {
-            System.out.println("Weapon offset updated to: " + weaponOffset);
+
         }
     }
 
@@ -156,7 +154,7 @@ public class WeaponCamera {
         weaponOffset.addLocal(deltaRight, -deltaDown, deltaForward);
 
         if (debugEnabled) {
-            System.out.println("Weapon offset adjusted to: " + weaponOffset);
+
         }
     }
 
@@ -170,22 +168,14 @@ public class WeaponCamera {
         this.debugEnabled = enabled;
 
         if (enabled) {
-            System.out.println("WeaponCamera debug enabled");
+
         }
     }
 
     /**
      * Print current weapon camera state
      */
-    public void printDebugInfo() {
-        System.out.println("=== WeaponCamera Debug ===");
-        System.out.println("Weapon Offset: " + weaponOffset);
-        System.out.println("Weapon Position: " + weaponCamera.getLocation());
-        System.out.println("Weapon Direction: " + weaponCamera.getDirection());
-        System.out.println("Player Position: " + playerCamera.getLocation());
-        System.out.println("Distance from Player: " +
-                weaponCamera.getLocation().distance(playerCamera.getLocation()));
-    }
+    public void printDebugInfo() {}
 
     /**
      * Get current weapon offset
@@ -202,6 +192,5 @@ public class WeaponCamera {
         weaponCamera = null;
         playerCamera = null;
 
-        System.out.println("WeaponCamera cleaned up");
     }
 }

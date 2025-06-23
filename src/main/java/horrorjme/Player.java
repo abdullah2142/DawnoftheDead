@@ -76,7 +76,7 @@ public class Player implements Control {
         camera.lookAt(initialLookAt, Vector3f.UNIT_Y);
 
         setupTorch();
-        System.out.println("Enhanced Player initialized with split weapon effects support");
+
     }
 
     public Player(Camera camera, Node rootNode, int[][] mapData) {
@@ -86,18 +86,18 @@ public class Player implements Control {
     // NEW: Set muzzle flash system
     public void setMuzzleFlashSystem(ModelBasedMuzzleFlash muzzleFlashSystem) {
         this.muzzleFlashSystem = muzzleFlashSystem;
-        System.out.println("Player: ModelBasedMuzzleFlash system connected - 3D muzzle flash enabled");
+
     }
 
     // UPDATED: Set weapon effects manager (shell casings + tracers)
     public void setWeaponEffectsManager(WeaponEffectsManager weaponEffectsManager) {
         this.weaponEffectsManager = weaponEffectsManager;
-        System.out.println("Player: WeaponEffectsManager connected - shell casings & tracers enabled");
+
     }
 
     public void setCharacterControl(CharacterControl characterControl) {
         this.characterControl = characterControl;
-        System.out.println("Player: CharacterControl set for ground detection");
+
     }
 
     private void setupTorch() {
@@ -203,7 +203,7 @@ public class Player implements Control {
 
     public void setWeaponAnimator(ModernWeaponAnimator weaponAnimator) {
         this.weaponAnimator = weaponAnimator;
-        System.out.println("Player: Enhanced WeaponAnimator set with mouse sway support");
+
     }
 
     /**
@@ -219,7 +219,7 @@ public class Player implements Control {
         if (currentAmmo <= 0) {
             // Play empty click sound
             if (audioManager != null) {
-                System.out.println("*click* - Out of ammo!");
+
             }
             return;
         }
@@ -254,8 +254,7 @@ public class Player implements Control {
             weaponEffectsManager.fireWeapon();
         }
 
-        System.out.println("Weapon fired! Ammo: " + currentAmmo + "/" + maxAmmo);
-        System.out.println("Effects: 3D muzzle flash + shell casing + bullet tracer");
+
     }
 
     /**
@@ -280,7 +279,6 @@ public class Player implements Control {
             audioManager.playSoundEffect("gun_reload");
         }
 
-        System.out.println("Reloading weapon...");
     }
 
     /**
@@ -289,17 +287,17 @@ public class Player implements Control {
     private void finishReload() {
         isReloading = false;
         currentAmmo = maxAmmo;
-        System.out.println("Reload complete! Ammo: " + currentAmmo + "/" + maxAmmo);
+
     }
 
     public void toggleTorch() {
         torchOn = !torchOn;
         if (torchOn) {
             rootNode.addLight(torch);
-            System.out.println("Flashlight ON");
+
         } else {
             rootNode.removeLight(torch);
-            System.out.println("Flashlight OFF");
+
         }
 
         if (audioManager != null) {
@@ -364,7 +362,7 @@ public class Player implements Control {
     // Configuration for mouse sway behavior
     public void setMouseDeltaDecay(float decay) {
         this.mouseDeltaDecay = Math.max(0.5f, Math.min(0.99f, decay));
-        System.out.println("Player mouse delta decay set to: " + this.mouseDeltaDecay);
+
     }
 
     // Getters and setters
@@ -387,7 +385,7 @@ public class Player implements Control {
         if (health <= 0) {
             health = 0;
             isDead = true;
-            System.out.println("Player died!");
+
         }
     }
 

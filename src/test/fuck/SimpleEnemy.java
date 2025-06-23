@@ -72,9 +72,7 @@ public class SimpleEnemy extends Entity {
         switch (currentState) {
             case IDLE:
                 if (distanceToPlayer <= detectionRange) {
-                    currentState = EnemyState.CHASING;
-                    System.out.println("Enemy " + entityId + " spotted player!");
-                }
+                    currentState = EnemyState.CHASING;}
                 break;
 
             case CHASING:
@@ -110,9 +108,7 @@ public class SimpleEnemy extends Entity {
         }
     }
 
-    private void attack() {
-        System.out.println("Enemy " + entityId + " attacks for " + attackDamage + " damage!");
-        // In a real game, you'd apply damage to the player here
+    private void attack() {// In a real game, you'd apply damage to the player here
         // For now, just print the attack
     }
 
@@ -131,10 +127,7 @@ public class SimpleEnemy extends Entity {
 
     @Override
     public void onDestroy() {
-        currentState = EnemyState.DEAD;
-        System.out.println("Enemy " + entityId + " destroyed!");
-
-        // Change color to indicate death
+        currentState = EnemyState.DEAD;// Change color to indicate death
         if (model != null && model instanceof Geometry) {
             Geometry geom = (Geometry) model;
             Material mat = geom.getMaterial();

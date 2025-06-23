@@ -47,6 +47,6 @@ public class GameStateManager {
     }
 
     private void onStateChanged() {
-        System.out.println("Game state changed from " + previousState + " to " + currentState);
+
     }
 }

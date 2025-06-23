@@ -65,7 +65,7 @@ public class ShellCasing extends Entity {
             shellTexture.setMinFilter(Texture.MinFilter.NearestNoMipMaps);
             shellMaterial.setTexture("Texture", shellTexture);
         } catch (Exception e) {
-            System.out.println("Shell casing texture not found, using default color");
+
             // Fallback to golden color
             shellMaterial.setColor("Color", new ColorRGBA(0.8f, 0.6f, 0.2f, 1f));
         }
@@ -167,7 +167,6 @@ public class ShellCasing extends Entity {
             bulletAppState.getPhysicsSpace().remove(rigidBody);
         }
 
-        System.out.println("Shell casing " + entityId + " removed");
     }
 
     // Static factory method for easy creation

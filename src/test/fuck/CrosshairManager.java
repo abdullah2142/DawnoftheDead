@@ -60,12 +60,7 @@ public class CrosshairManager {
         );
 
         createCrosshair();
-        createAccuracyIndicator();
-
-        System.out.println("CrosshairManager initialized:");
-        System.out.println("  Screen center: " + crosshairPosition);
-        System.out.println("  Crosshair size: " + crosshairSize);
-    }
+        createAccuracyIndicator();}
 
     /**
      * Create the main crosshair graphic
@@ -83,13 +78,9 @@ public class CrosshairManager {
             Texture crosshairTexture = assetManager.loadTexture("Textures/UI/crosshair.png");
             crosshairTexture.setMagFilter(Texture.MagFilter.Nearest);
             crosshairTexture.setMinFilter(Texture.MinFilter.NearestNoMipMaps);
-            crosshairMaterial.setTexture("Texture", crosshairTexture);
-            System.out.println("Loaded crosshair texture");
-        } catch (Exception e) {
+            crosshairMaterial.setTexture("Texture", crosshairTexture);} catch (Exception e) {
             // Fallback to colored crosshair
-            crosshairMaterial.setColor("Color", new ColorRGBA(1f, 1f, 1f, 0.8f));
-            System.out.println("Using fallback crosshair color");
-        }
+            crosshairMaterial.setColor("Color", new ColorRGBA(1f, 1f, 1f, 0.8f));}
 
         // Enable alpha blending
         crosshairMaterial.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
@@ -279,9 +270,7 @@ public class CrosshairManager {
     public void setWeaponAlignment(float offsetX, float offsetY) {
         this.weaponAlignment.set(offsetX, offsetY, 0);
         this.useWeaponAlignment = true;
-        updateCrosshairPosition();
-        System.out.println("Weapon alignment set to: X=" + offsetX + ", Y=" + offsetY);
-    }
+        updateCrosshairPosition();}
 
     /**
      * Align crosshair with weapon position from ModernWeaponAnimator
@@ -296,10 +285,7 @@ public class CrosshairManager {
         weaponCenter.y += (32 * weaponScale); // Adjust based on your weapon sprite
 
         Vector3f alignment = weaponCenter.subtract(screenCenter);
-        setWeaponAlignment(alignment.x, alignment.y);
-
-        System.out.println("Crosshair aligned with weapon at: " + weaponCenter);
-    }
+        setWeaponAlignment(alignment.x, alignment.y);}
 
     /**
      * Reset to center alignment
@@ -307,9 +293,7 @@ public class CrosshairManager {
     public void resetAlignment() {
         this.useWeaponAlignment = false;
         this.weaponAlignment.set(0, 0, 0);
-        updateCrosshairPosition();
-        System.out.println("Crosshair alignment reset to center");
-    }
+        updateCrosshairPosition();}
 
     // ==== CONFIGURATION METHODS ====
 
@@ -387,9 +371,7 @@ public class CrosshairManager {
         if (crosshairNode.getParent() != null) {
             guiNode.detachChild(crosshairNode);
         }
-        crosshairNode.detachAllChildren();
-        System.out.println("CrosshairManager cleaned up");
-    }
+        crosshairNode.detachAllChildren();}
 
     // ==== DEBUG METHODS ====
 

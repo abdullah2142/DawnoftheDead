@@ -37,10 +37,7 @@ public class BulletTracer extends Entity {
 
         // Normalize direction and set bullet velocity
         Vector3f bulletDirection = direction.normalize();
-        this.velocity = bulletDirection.mult(bulletSpeed);
-
-        System.out.println("Bullet tracer created - Speed: " + bulletSpeed + ", Direction: " + bulletDirection);
-    }
+        this.velocity = bulletDirection.mult(bulletSpeed);}
 
     @Override
     public void initializeModel() {
@@ -70,10 +67,7 @@ public class BulletTracer extends Entity {
         model.setLocalTranslation(position);
 
         // Orient bullet in direction of travel
-        model.lookAt(position.add(velocity.normalize()), Vector3f.UNIT_Y);
-
-        System.out.println("Bullet tracer model initialized");
-    }
+        model.lookAt(position.add(velocity.normalize()), Vector3f.UNIT_Y);}
 
     @Override
     public void update(float tpf) {
@@ -95,9 +89,7 @@ public class BulletTracer extends Entity {
             // Check if bullet exceeded max range
             if (travelDistance >= maxRange) {
                 hasHit = true;
-                velocity.set(0, 0, 0); // Stop bullet
-                System.out.println("Bullet reached max range: " + maxRange);
-            }
+                velocity.set(0, 0, 0); // Stop bullet}
         }
 
         // Start fading out when bullet hits or near end of life
@@ -129,19 +121,11 @@ public class BulletTracer extends Entity {
 
             // Deal damage if it's an enemy
             if (other.getType() == EntityType.ENEMY) {
-                other.takeDamage(25f); // Bullet damage
-                System.out.println("Bullet hit enemy " + other.getEntityId() + " for 25 damage");
-            }
-
-            System.out.println("Bullet tracer hit: " + other.getEntityId());
-        }
+                other.takeDamage(25f); // Bullet damage}}
     }
 
     @Override
-    public void onDestroy() {
-        System.out.println("Bullet tracer " + entityId + " destroyed after traveling " +
-                String.format("%.1f", travelDistance) + " units");
-    }
+    public void onDestroy() {}
 
     /**
      * Static factory method for easy creation from WeaponEffectsManager
@@ -165,34 +149,26 @@ public class BulletTracer extends Entity {
         if (!hasHit) {
             Vector3f direction = velocity.normalize();
             this.velocity = direction.mult(this.bulletSpeed);
-        }
-        System.out.println("Bullet speed set to: " + this.bulletSpeed);
-    }
+        }}
 
     /**
      * Set maximum bullet range
      */
     public void setMaxRange(float range) {
-        this.maxRange = Math.max(5f, range);
-        System.out.println("Bullet max range set to: " + this.maxRange);
-    }
+        this.maxRange = Math.max(5f, range);}
 
     /**
      * Set bullet lifetime (how long it exists)
      */
     public void setLifeTime(float time) {
-        this.lifeTime = Math.max(0.1f, time);
-        System.out.println("Bullet lifetime set to: " + this.lifeTime + " seconds");
-    }
+        this.lifeTime = Math.max(0.1f, time);}
 
     /**
      * Set bullet color
      */
     public void setBulletColor(ColorRGBA color) {
         if (bulletMaterial != null) {
-            bulletMaterial.setColor("Color", color);
-            System.out.println("Bullet color set to: " + color);
-        }
+            bulletMaterial.setColor("Color", color);}
     }
 
     /**
@@ -227,9 +203,7 @@ public class BulletTracer extends Entity {
                 setLifeTime(3f);
                 setBulletColor(new ColorRGBA(1f, 0.3f, 0.1f, 1f)); // Bright red tracer
                 break;
-        }
-        System.out.println("Applied bullet preset: " + preset);
-    }
+        }}
 
     public enum BulletPreset {
         FAST_RIFLE,      // High-velocity rifle round

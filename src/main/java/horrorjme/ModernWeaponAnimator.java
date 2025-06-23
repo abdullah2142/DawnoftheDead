@@ -192,10 +192,9 @@ public class ModernWeaponAnimator {
         initializePictures();
         setupDefaultAnimations();
 
-        System.out.println("ModernWeaponAnimator enhanced with mouse sway system:");
-        System.out.println("  Mouse sway intensity: " + mouseSwayIntensity);
-        System.out.println("  Mouse sway decay: " + mouseSwayDecay);
-        System.out.println("  Max sway X: " + mouseSwayMaxX + ", Y: " + mouseSwayMaxY);
+
+
+
     }
 
     /**
@@ -262,8 +261,6 @@ public class ModernWeaponAnimator {
     public void loadFrames(String basePath, int frameCount) {
         frames = new Texture2D[frameCount];
 
-        System.out.println("Loading " + frameCount + " weapon frames from: " + basePath);
-
         for (int i = 0; i < frameCount; i++) {
             // Build path: "Textures/Weapons/gun_000.png", "gun_001.png", etc.
             String path = basePath + String.format("%03d", i) + ".png";
@@ -277,7 +274,6 @@ public class ModernWeaponAnimator {
                 texture.setMinFilter(Texture.MinFilter.NearestNoMipMaps);
 
                 frames[i] = texture;
-                System.out.println("Loaded frame " + i + ": " + path);
 
             } catch (Exception e) {
                 System.err.println("Failed to load weapon frame: " + path);
@@ -288,7 +284,7 @@ public class ModernWeaponAnimator {
         // Set initial frame on both Pictures
         if (frames.length > 0) {
             setFrame(0);
-            System.out.println("Weapon frames loaded successfully!");
+
         } else {
             System.err.println("No weapon frames were loaded!");
         }
@@ -336,7 +332,6 @@ public class ModernWeaponAnimator {
         // RELOAD: frames 4-17 (endFrame 18 means "up to but not including 18")
         animations.put("reload", new AnimationSequence("reload", 4, 18, reloadDurations, reloadCurves, false, null));
 
-        System.out.println("Animations setup: shoot(1-3), reload(4-17)");
     }
 
     /**
@@ -345,7 +340,7 @@ public class ModernWeaponAnimator {
     public void playAnimation(String name) {
         AnimationSequence anim = animations.get(name);
         if (anim != null) {  // Remove the currentAnimation check
-            System.out.println("Starting animation: " + name);
+
             currentAnimation = anim;
             currentFrameIndex = anim.startFrame;
             nextFrameIndex = Math.min(currentFrameIndex + 1, anim.endFrame);
@@ -465,7 +460,7 @@ public class ModernWeaponAnimator {
             isPlaying = false;
             currentAnimation = null;
             setFrame(0); // Static idle on frame 0
-            System.out.println("Animation complete, returned to idle");
+
         }
     }
 
@@ -581,18 +576,18 @@ public class ModernWeaponAnimator {
     // ENHANCED: Mouse sway configuration methods
     public void setMouseSwayIntensity(float intensity) {
         this.mouseSwayIntensity = Math.max(0f, intensity); // Remove upper clamp
-        System.out.println("Mouse sway intensity set to: " + this.mouseSwayIntensity);
+
     }
 
     public void setMouseSwayDecay(float decay) {
         this.mouseSwayDecay = Math.max(0.1f, Math.min(0.99f, decay)); // Keep decay reasonable
-        System.out.println("Mouse sway decay set to: " + this.mouseSwayDecay);
+
     }
 
     public void setMouseSwayLimits(float maxX, float maxY) {
         this.mouseSwayMaxX = Math.max(5f, maxX); // Remove upper clamp for X
         this.mouseSwayMaxY = Math.max(5f, maxY); // Remove upper clamp for Y
-        System.out.println("Mouse sway limits set to X: " + this.mouseSwayMaxX + ", Y: " + this.mouseSwayMaxY);
+
     }
 
     public boolean isAnimating() {

@@ -81,10 +81,7 @@ public class HUDManager {
             hudNode.attachChild(debugText);
         }
 
-        guiNode.attachChild(hudNode);
-
-        System.out.println("Enhanced HUDManager initialized with crosshair system");
-    }
+        guiNode.attachChild(hudNode);}
 
     /**
      * Main HUD update method
@@ -226,9 +223,7 @@ public class HUDManager {
             // You'll need to add methods to ModernWeaponAnimator to get position info
 
             // For now, use default alignment
-            crosshairManager.resetAlignment();
-            System.out.println("Crosshair configured for current weapon");
-        }
+            crosshairManager.resetAlignment();}
     }
 
     /**
@@ -254,10 +249,7 @@ public class HUDManager {
             hudNode.attachChild(debugText);
         } else if (!showDebugInfo && debugText.getParent() != null) {
             hudNode.detachChild(debugText);
-        }
-
-        System.out.println("Debug info " + (showDebugInfo ? "ENABLED" : "DISABLED"));
-    }
+        }}
 
     /**
      * Set debug info visibility
@@ -286,9 +278,7 @@ public class HUDManager {
 
         hudNode.attachChild(tempText);
 
-        // In a real implementation, you'd want a timer system to remove this
-        System.out.println("Temporary message: " + message + " (would fade after " + duration + "s)");
-    }
+        // In a real implementation, you'd want a timer system to remove this}
 
     // ==== VISIBILITY METHODS ====
 
@@ -323,10 +313,7 @@ public class HUDManager {
         if (hudNode.getParent() != null) {
             guiNode.detachChild(hudNode);
         }
-        hudNode.detachAllChildren();
-
-        System.out.println("Enhanced HUDManager cleaned up");
-    }
+        hudNode.detachAllChildren();}
 
     // ==== GETTERS ====
 
@@ -368,10 +355,7 @@ public class HUDManager {
                 setDebugInfoVisible(true);
                 // Maximum information for debugging
                 break;
-        }
-
-        System.out.println("Applied HUD preset: " + preset);
-    }
+        }}
 
     public enum HUDPreset {
         MINIMAL,      // Just crosshair and essential info

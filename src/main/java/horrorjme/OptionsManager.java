@@ -102,12 +102,12 @@ public class OptionsManager {
     // Future: Save/Load from file
     public void saveSettings() {
         // TODO: Implement saving to preferences file
-        System.out.println("Settings would be saved here");
+
     }
 
     public void loadSettings() {
         // TODO: Implement loading from preferences file
-        System.out.println("Settings would be loaded here");
+
     }
 
     // Apply settings to game systems

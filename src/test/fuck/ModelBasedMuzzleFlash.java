@@ -47,11 +47,7 @@ public class ModelBasedMuzzleFlash {
     public ModelBasedMuzzleFlash(Node rootNode, Camera camera) {
         this.rootNode = rootNode;
         this.camera = camera;
-        this.activeFlashes = new ArrayList<>();
-
-        System.out.println("Simple Muzzle Flash system initialized");
-        System.out.println("Flash settings: Duration=" + flashDuration + "s, Intensity=" + flashIntensity + ", Radius=" + flashRadius);
-    }
+        this.activeFlashes = new ArrayList<>();}
 
     /**
      * Create a bright flash of light when firing
@@ -71,10 +67,7 @@ public class ModelBasedMuzzleFlash {
 
         // Track this flash for fade-out
         FlashInstance flash = new FlashInstance(flashLight, flashDuration, flashIntensity);
-        activeFlashes.add(flash);
-
-        System.out.println("Muzzle flash created - bright light illuminating surroundings");
-    }
+        activeFlashes.add(flash);}
 
     /**
      * Calculate where the flash should appear
@@ -123,9 +116,7 @@ public class ModelBasedMuzzleFlash {
         for (FlashInstance flash : activeFlashes) {
             rootNode.removeLight(flash.light);
         }
-        activeFlashes.clear();
-        System.out.println("Muzzle flash system cleaned up");
-    }
+        activeFlashes.clear();}
 
     // ==== CONFIGURATION METHODS ====
 
@@ -133,41 +124,31 @@ public class ModelBasedMuzzleFlash {
      * Set how long the flash lasts (in seconds)
      */
     public void setFlashDuration(float duration) {
-        this.flashDuration = Math.max(0.01f, Math.min(0.5f, duration));
-        System.out.println("Flash duration set to: " + this.flashDuration + " seconds");
-    }
+        this.flashDuration = Math.max(0.01f, Math.min(0.5f, duration));}
 
     /**
      * Set how bright the flash is
      */
     public void setFlashIntensity(float intensity) {
-        this.flashIntensity = Math.max(1f, intensity);
-        System.out.println("Flash intensity set to: " + this.flashIntensity);
-    }
+        this.flashIntensity = Math.max(1f, intensity);}
 
     /**
      * Set how far the light reaches
      */
     public void setFlashRadius(float radius) {
-        this.flashRadius = Math.max(1f, radius);
-        System.out.println("Flash radius set to: " + this.flashRadius + " units");
-    }
+        this.flashRadius = Math.max(1f, radius);}
 
     /**
      * Set the color of the flash
      */
     public void setFlashColor(ColorRGBA color) {
-        this.flashColor = color.clone();
-        System.out.println("Flash color set to: " + color);
-    }
+        this.flashColor = color.clone();}
 
     /**
      * Set flash position offset from camera
      */
     public void setMuzzleOffset(float rightOffset, float downOffset, float forwardOffset) {
-        this.muzzleOffset.set(rightOffset, downOffset, forwardOffset);
-        System.out.println("Flash position set to: Right=" + rightOffset + ", Down=" + downOffset + ", Forward=" + forwardOffset);
-    }
+        this.muzzleOffset.set(rightOffset, downOffset, forwardOffset);}
 
     /**
      * Quick presets for different lighting effects
@@ -201,9 +182,7 @@ public class ModelBasedMuzzleFlash {
                 setFlashRadius(15f);
                 setFlashColor(new ColorRGBA(1f, 1f, 0.9f, 1f)); // Bright white
                 break;
-        }
-        System.out.println("Applied flash preset: " + preset);
-    }
+        }}
 
     public enum FlashPreset {
         BRIGHT_CAMERA_FLASH,    // Like a camera flash - very bright and brief

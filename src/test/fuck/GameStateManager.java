@@ -46,7 +46,5 @@ public class GameStateManager {
         return currentState == GameState.PAUSED;
     }
 
-    private void onStateChanged() {
-        System.out.println("Game state changed from " + previousState + " to " + currentState);
-    }
+    private void onStateChanged() {}
 }

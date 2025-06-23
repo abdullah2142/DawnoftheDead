@@ -49,7 +49,6 @@ public class PostProcessingManager {
      */
     public void setLightingManager(AdvancedLightingManager lightingManager) {
         this.lightingManager = lightingManager;
-        System.out.println("PostProcessingManager integrated with AdvancedLightingManager");
 
         // Update effects based on lighting
         if (postProcessor != null) {
@@ -61,7 +60,6 @@ public class PostProcessingManager {
      * Initializes all the post-processing filters with enhanced horror effects
      */
     public void initializeEffects() {
-        System.out.println("Setting up enhanced horror post-processing effects...");
 
         postProcessor = new FilterPostProcessor(assetManager);
 
@@ -71,7 +69,6 @@ public class PostProcessingManager {
         fogFilter.setFogDensity(0.3f); // Reduced density for better visibility
         fogFilter.setFogDistance(80f); // Increased distance
         postProcessor.addFilter(fogFilter);
-        System.out.println("Added enhanced FOG filter");
 
         // 2. LIGHT SCATTERING - God rays and atmospheric scattering (if available)
         try {
@@ -81,9 +78,9 @@ public class PostProcessingManager {
             lightScatteringFilter.setLightDensity(1.2f);
             lightScatteringFilter.setLightPosition(viewPort.getCamera().getDirection().mult(-1f));
             postProcessor.addFilter(lightScatteringFilter);
-            System.out.println("Added LIGHT SCATTERING filter");
+
         } catch (Exception e) {
-            System.out.println("Light scattering filter not available in this JME3 version, skipping");
+
             lightScatteringFilter = null;
         }
 
@@ -93,7 +90,6 @@ public class PostProcessingManager {
         dofFilter.setFocusRange(12f); // Wider range
         dofFilter.setBlurScale(0.5f); // More blur
         postProcessor.addFilter(dofFilter);
-        System.out.println("Added enhanced DOF filter");
 
         // 4. ENHANCED BLOOM - For atmospheric lights
         bloomFilter = new BloomFilter(BloomFilter.GlowMode.Objects);
@@ -102,21 +98,18 @@ public class PostProcessingManager {
         bloomFilter.setExposurePower(3f); // Reduced exposure power
         bloomFilter.setDownSamplingFactor(2f);
         postProcessor.addFilter(bloomFilter);
-        System.out.println("Added enhanced BLOOM filter");
 
         // 5. DYNAMIC NOISE - Adaptive film grain
         noiseFilter = new ColorOverlayFilter();
         noiseFilter.setColor(ColorRGBA.White);
         postProcessor.addFilter(noiseFilter);
-        System.out.println("Added DYNAMIC NOISE filter");
 
         // 6. FADE FILTER - For special effects
         fadeFilter = new FadeFilter();
         postProcessor.addFilter(fadeFilter);
-        System.out.println("Added FADE filter");
 
         viewPort.addProcessor(postProcessor);
-        System.out.println("Enhanced horror post-processing initialized.");
+
     }
 
     /**
@@ -130,7 +123,6 @@ public class PostProcessingManager {
         fogFilter.setFogColor(new ColorRGBA(0.05f, 0.05f, 0.08f, 1.0f));
         bloomFilter.setBloomIntensity(2.0f);
 
-        System.out.println("Post-processing effects updated for single lighting configuration");
     }
 
     /**
@@ -256,7 +248,6 @@ public class PostProcessingManager {
             lightingManager.createLightningFlash(1.5f, 0.1f);
         }
 
-        System.out.println("Enhanced scare effect triggered with lighting integration");
     }
 
     /**
@@ -270,7 +261,6 @@ public class PostProcessingManager {
             fogFilter.setFogDensity(0.7f);
             fogFilter.setFogColor(new ColorRGBA(0.01f, 0.0f, 0.0f, 1.0f)); // Dark red fog
 
-            System.out.println("Power outage effect triggered for " + duration + " seconds");
         }
     }
 
@@ -281,7 +271,7 @@ public class PostProcessingManager {
         if (lightingManager != null) {
             lightingManager.setEmergencyLighting(false);
             updateEffectsForLighting(); // Restore normal fog settings
-            System.out.println("Normal atmosphere restored");
+
         }
     }
 
@@ -289,12 +279,12 @@ public class PostProcessingManager {
 
     public void setDynamicAtmosphereEnabled(boolean enabled) {
         this.dynamicAtmosphereEnabled = enabled;
-        System.out.println("Dynamic atmosphere " + (enabled ? "enabled" : "disabled"));
+
     }
 
     public void setFilmGrainIntensity(float intensity) {
         // Update noise filter intensity
-        System.out.println("Film grain intensity set to: " + intensity);
+
     }
 
     /**
@@ -305,6 +295,6 @@ public class PostProcessingManager {
             viewPort.removeProcessor(postProcessor);
             postProcessor = null;
         }
-        System.out.println("Enhanced post-processing cleaned up");
+
     }
 }

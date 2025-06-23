@@ -99,10 +99,7 @@ public class HorrorGameJME extends SimpleApplication {
     }
 
     @Override
-    public void simpleInitApp() {
-        System.out.println("=== INITIALIZING HORROR GAME WITH DOOM MAP ===");
-
-        // Initialize physics (without debug for cleaner view)
+    public void simpleInitApp() {// Initialize physics (without debug for cleaner view)
         initializePhysics();
 
         // Setup lighting (keep the working lighting)
@@ -115,26 +112,14 @@ public class HorrorGameJME extends SimpleApplication {
         setupCameraAndInput();
 
         // Show menu
-        showMainMenu();
+        showMainMenu();}
 
-        System.out.println("=== INITIALIZATION COMPLETE ===");
-    }
-
-    private void initializePhysics() {
-        System.out.println("Setting up physics...");
-
-        bulletAppState = new BulletAppState();
+    private void initializePhysics() {bulletAppState = new BulletAppState();
         // Disable debug for cleaner view (can re-enable with F2 if needed)
         bulletAppState.setDebugEnabled(false);
-        stateManager.attach(bulletAppState);
+        stateManager.attach(bulletAppState);}
 
-        System.out.println("Physics initialized");
-    }
-
-    private void setupProperLighting() {
-        System.out.println("Setting up horror lighting for DOOM map...");
-
-        // Clear existing lights
+    private void setupProperLighting() {// Clear existing lights
         rootNode.getLocalLightList().clear();
 
         // Enable shadows on root node
@@ -161,15 +146,9 @@ public class HorrorGameJME extends SimpleApplication {
         DirectionalLight fill = new DirectionalLight();
         fill.setDirection(new Vector3f(0.5f, -0.3f, 0.5f).normalizeLocal());
         fill.setColor(ColorRGBA.White.mult(0.1f)); // Very dim
-        rootNode.addLight(fill);
+        rootNode.addLight(fill);}
 
-        System.out.println("Horror lighting with shadows setup complete");
-    }
-
-    private void setupPostProcessing() {
-        System.out.println("Setting up horror post-processing effects (DEBUG MODE)...");
-
-        postProcessor = new FilterPostProcessor(assetManager);
+    private void setupPostProcessing() {postProcessor = new FilterPostProcessor(assetManager);
 
         // Add effects one by one - comment out the ones causing issues
 
@@ -178,48 +157,28 @@ public class HorrorGameJME extends SimpleApplication {
         fog.setFogColor(new ColorRGBA(0.1f, 0.1f, 0.1f, 1.0f)); // Lighter fog
         fog.setFogDensity(0.5f);  // Much less dense
         fog.setFogDistance(50f);   // Further distance
-        postProcessor.addFilter(fog);
-        System.out.println("Added FOG filter");
-
-        // 2. COMMENT OUT DOF - Often causes issues
+        postProcessor.addFilter(fog);// 2. COMMENT OUT DOF - Often causes issues
 
         DepthOfFieldFilter dof = new DepthOfFieldFilter();
         dof.setFocusDistance(10f);
         dof.setFocusRange(15f);
         dof.setBlurScale(1.4f);
-        postProcessor.addFilter(dof);
-        System.out.println("Added DOF filter");
-
-
-        // 3. BLOOM - Sometimes causes black screen
+        postProcessor.addFilter(dof);// 3. BLOOM - Sometimes causes black screen
 
         BloomFilter bloom = new BloomFilter(BloomFilter.GlowMode.Objects);
         bloom.setBloomIntensity(1.5f);
         bloom.setBlurScale(1.5f);
         bloom.setExposurePower(5f);
         bloom.setDownSamplingFactor(2f);
-        postProcessor.addFilter(bloom);
-        System.out.println("Added BLOOM filter");
-
-
-        // 4. SKIP VIGNETTE - Was causing the error
+        postProcessor.addFilter(bloom);// 4. SKIP VIGNETTE - Was causing the error
         //postProcessor.addFilter(createVignetteFilter());
 
         // 5. NOISE - Usually safe
         noiseFilter = new ColorOverlayFilter();
         noiseFilter.setColor(ColorRGBA.White);
-        postProcessor.addFilter(noiseFilter);
-        System.out.println("Added NOISE filter");
-
-        // 6. FADE - Usually safe
+        postProcessor.addFilter(noiseFilter);// 6. FADE - Usually safe
         fadeFilter = new FadeFilter();
-        postProcessor.addFilter(fadeFilter);
-        System.out.println("Added FADE filter");
-
-        viewPort.addProcessor(postProcessor);
-
-        System.out.println("Horror post-processing initialized (DEBUG MODE)");
-    }
+        postProcessor.addFilter(fadeFilter);viewPort.addProcessor(postProcessor);}
     // Simple vignette using ColorOverlay
     /*private Filter createVignetteFilter() {
         // Create a darkening effect at screen edges
@@ -269,10 +228,7 @@ public class HorrorGameJME extends SimpleApplication {
         }
     }
 
-    private void initializeManagers() {
-        System.out.println("Initializing game managers...");
-
-        gameStateManager = new GameStateManager();
+    private void initializeManagers() {gameStateManager = new GameStateManager();
         optionsManager = new OptionsManager();
         audioManager = new AudioManager(assetManager, rootNode);
         entityManager = new EntityManager(rootNode);
@@ -285,15 +241,9 @@ public class HorrorGameJME extends SimpleApplication {
         } catch (Exception e) {
             System.err.println("Audio initialization failed: " + e.getMessage());
             audioManager.initializeMinimalAudio();
-        }
+        }}
 
-        System.out.println("Managers initialized");
-    }
-
-    private void setupCameraAndInput() {
-        System.out.println("Setting up smooth camera and input...");
-
-        // Setup camera with better settings
+    private void setupCameraAndInput() {// Setup camera with better settings
         cam.setFrustumPerspective(75f, (float)cam.getWidth() / cam.getHeight(), 0.1f, 500f);
 
         // Disable flyCam
@@ -303,21 +253,13 @@ public class HorrorGameJME extends SimpleApplication {
         inputHandler = new InputHandler(inputManager, gameStateManager, this);
 
         menuSystem = new MenuSystem(assetManager, guiNode, settings, gameStateManager, this, optionsManager);
-        inputHandler.setMenuSystem(menuSystem);
+        inputHandler.setMenuSystem(menuSystem);}
 
-        System.out.println("Smooth camera and input setup complete");
-    }
-
-    private void showMainMenu() {
-        System.out.println("Showing main menu...");
-        menuSystem.showMainMenu();
+    private void showMainMenu() {menuSystem.showMainMenu();
         inputHandler.disableMouseLook();
     }
 
-    public void startGame() {
-        System.out.println("=== STARTING GAME WITH DOOM MAP ===");
-
-        gameStateManager.setState(GameStateManager.GameState.PLAYING);
+    public void startGame() {gameStateManager.setState(GameStateManager.GameState.PLAYING);
         menuSystem.hide();
 
         // Load DOOM map
@@ -333,18 +275,12 @@ public class HorrorGameJME extends SimpleApplication {
         setupPlayerSystems();
 
         // Final setup
-        finishGameStart();
-
-        System.out.println("=== DOOM MAP LOADED - GAME STARTED ===");
-    }
+        finishGameStart();}
 
     /**
      * Load the actual DOOM map with proper scaling and materials
      */
-    private void loadDoomMap() {
-        System.out.println("Loading DOOM2_MAP01.obj...");
-
-        try {
+    private void loadDoomMap() {try {
             // Load the DOOM map
             doomMap = assetManager.loadModel("Models/DOOM2_MAP01.j3o");
 
@@ -353,15 +289,10 @@ public class HorrorGameJME extends SimpleApplication {
             }
 
             // Scale the map appropriately
-            doomMap.scale(MAP_SCALE);
-            System.out.println("DOOM map scaled by: " + MAP_SCALE);
-
-            // Apply proper materials to all geometries
+            doomMap.scale(MAP_SCALE);// Apply proper materials to all geometries
             applyDoomMapMaterials();
 
-            // Create collision shape for the DOOM map
-            System.out.println("Creating collision shape for DOOM map...");
-            CollisionShape mapCollisionShape = CollisionShapeFactory.createMeshShape(doomMap);
+            // Create collision shape for the DOOM mapCollisionShape mapCollisionShape = CollisionShapeFactory.createMeshShape(doomMap);
 
 
             // Create physics control
@@ -370,25 +301,16 @@ public class HorrorGameJME extends SimpleApplication {
 
             // Add to scene and physics
             rootNode.attachChild(doomMap);
-            bulletAppState.getPhysicsSpace().add(landscapeControl);
-
-            System.out.println("DOOM map loaded successfully!");
-
-        } catch (Exception e) {
+            bulletAppState.getPhysicsSpace().add(landscapeControl);} catch (Exception e) {
             System.err.println("Failed to load DOOM map: " + e.getMessage());
-            e.printStackTrace();
-            System.out.println("Creating fallback map...");
-            createMinimalFallbackMap();
+            e.printStackTrace();createMinimalFallbackMap();
         }
     }
 
     /**
      * Apply proper materials to DOOM map geometries
      */
-    private void applyDoomMapMaterials() {
-        System.out.println("Applying materials to DOOM map...");
-
-        doomMap.depthFirstTraversal(spatial -> {
+    private void applyDoomMapMaterials() {doomMap.depthFirstTraversal(spatial -> {
             if (spatial instanceof Geometry) {
                 Geometry geom = (Geometry) spatial;
 
@@ -433,18 +355,12 @@ public class HorrorGameJME extends SimpleApplication {
                     }
                 }
             }
-        });
-
-        System.out.println("DOOM map materials applied");
-    }
+        });}
 
     /**
      * Create a minimal fallback if DOOM map fails
      */
-    private void createMinimalFallbackMap() {
-        System.out.println("Creating minimal fallback map...");
-
-        Node fallbackMap = new Node("FallbackMap");
+    private void createMinimalFallbackMap() {Node fallbackMap = new Node("FallbackMap");
 
         // Simple floor
         Box floorBox = new Box(50f, 1f, 50f);
@@ -479,18 +395,12 @@ public class HorrorGameJME extends SimpleApplication {
 
         rootNode.attachChild(fallbackMap);
         bulletAppState.getPhysicsSpace().add(landscapeControl);
-        doomMap = fallbackMap;
-
-        System.out.println("Fallback map created");
-    }
+        doomMap = fallbackMap;}
 
     /**
      * Create physics player with smooth movement settings
      */
-    private void createSmoothPhysicsPlayer() {
-        System.out.println("Creating smooth physics player...");
-
-        // Create smaller capsule for better movement
+    private void createSmoothPhysicsPlayer() {// Create smaller capsule for better movement
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(0.9f, 1.6f, 1);
 
         // Create CharacterControl with smooth settings
@@ -509,15 +419,9 @@ public class HorrorGameJME extends SimpleApplication {
         bulletAppState.getPhysicsSpace().add(playerControl);
 
         // Position camera smoothly
-        cam.setLocation(startPos.add(0, 0.8f * MAP_SCALE, 0)); // Scale camera offset
+        cam.setLocation(startPos.add(0, 0.8f * MAP_SCALE, 0)); // Scale camera offset}
 
-        System.out.println("Smooth physics player created at: " + startPos);
-    }
-
-    private void setupPlayerSystems() {
-        System.out.println("Setting up player systems with perfect weapon alignment...");
-
-        // 1. FIRST: Create the Player object
+    private void setupPlayerSystems() {// 1. FIRST: Create the Player object
         player = new Player(cam, rootNode, null, audioManager);
 
         // 2. SECOND: Create enhanced HUD with crosshair system
@@ -574,12 +478,7 @@ public class HorrorGameJME extends SimpleApplication {
         player.setMuzzleFlashSystem(muzzleFlashSystem);
 
         // 11. ELEVENTH: Apply options
-        optionsManager.applySettings(player, audioManager);
-
-        System.out.println("Player systems setup complete with perfect weapon alignment");
-        System.out.println("Weapon Effects Status: " + weaponEffectsManager.getSystemStatus());
-
-        // 12. OPTIONAL: Test alignment
+        optionsManager.applySettings(player, audioManager);// 12. OPTIONAL: Test alignment
         weaponEffectsManager.testAlignment();
     }
 
@@ -594,10 +493,7 @@ public class HorrorGameJME extends SimpleApplication {
             crosshair.setCrosshairSize(32f);
             crosshair.setCrosshairColor(new ColorRGBA(1f, 1f, 1f, 0.8f)); // White, slightly transparent
             crosshair.setAccuracyIndicatorVisible(true);
-            crosshair.setBaseAccuracy(15f, 80f); // Min and max accuracy circle sizes
-
-            System.out.println("Crosshair configured");
-        }
+            crosshair.setBaseAccuracy(15f, 80f); // Min and max accuracy circle sizes}
     }
 
     /**
@@ -624,16 +520,10 @@ public class HorrorGameJME extends SimpleApplication {
                     effects.setupWeaponPreset(WeaponEffectsManager.WeaponPreset.SHOTGUN,
                             new Vector3f(settings.getWidth() / 2f - 140f, settings.getHeight() - 200f, 0), 9.0f);
                     break;
-            }
-
-            System.out.println("Weapon alignment configured for: " + weaponType);
-        }
+            }}
     }
 
-    private void finishGameStart() {
-        System.out.println("Finishing game start...");
-
-        // Enable mouse look
+    private void finishGameStart() {// Enable mouse look
         inputHandler.enableMouseLook();
 
         // Show HUD
@@ -642,10 +532,7 @@ public class HorrorGameJME extends SimpleApplication {
         // Start background music
         if (audioManager.hasBackgroundMusic("horror_ambient")) {
             audioManager.playBackgroundMusic("horror_ambient");
-        }
-
-        System.out.println("Game start complete - Horror DOOM map ready!");
-    }
+        }}
 
     // Game state management methods
     public void pauseGame() {
@@ -673,10 +560,7 @@ public class HorrorGameJME extends SimpleApplication {
         hudManager.hide();
     }
 
-    private void cleanupGame() {
-        System.out.println("Cleaning up game...");
-
-        // Remove post-processing
+    private void cleanupGame() {// Remove post-processing
         if (postProcessor != null) {
             viewPort.removeProcessor(postProcessor);
             postProcessor = null;
@@ -702,10 +586,7 @@ public class HorrorGameJME extends SimpleApplication {
 
         if (entityManager != null) {
             entityManager.clear();
-        }
-
-        System.out.println("Game cleanup complete");
-    }
+        }}
 
     @Override
     public void simpleUpdate(float tpf) {
@@ -742,10 +623,7 @@ public class HorrorGameJME extends SimpleApplication {
     }
 
     @Override
-    public void destroy() {
-        System.out.println("Destroying game...");
-
-        if (inputHandler != null) {
+    public void destroy() {if (inputHandler != null) {
             inputHandler.cleanup();
         }
         if (audioManager != null) {

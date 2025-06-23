@@ -54,12 +54,11 @@ public class InputHandler implements ActionListener, AnalogListener {
         this.cam = game.getCamera();
         setupInputMappings();
 
-        System.out.println("Enhanced InputHandler initialized with mouse delta tracking:");
-        System.out.println("  Movement speed: " + moveSpeed);
-        System.out.println("  Mouse sensitivity: " + mouseSensitivity);
-        System.out.println("  Mouse sway smoothing: " + mouseSmoothing);
-        System.out.println("  Mouse handling: DIRECT with weapon sway support");
-        System.out.println("  Lighting controls: F9 (shadows), F10 (lightning), F11 (flicker)");
+
+
+
+
+
     }
 
     public void setPlayer(Player player) {
@@ -68,18 +67,17 @@ public class InputHandler implements ActionListener, AnalogListener {
         // IMPORTANT: Pass CharacterControl to Player for ground detection
         if (this.playerControl != null && player != null) {
             player.setCharacterControl(this.playerControl);
-            System.out.println("InputHandler: CharacterControl passed to Player for ground detection");
+
         }
     }
 
     public void setPlayerControl(CharacterControl playerControl) {
         this.playerControl = playerControl;
-        System.out.println("Physics player control connected");
 
         // IMPORTANT: If player is already set, pass the CharacterControl to it
         if (this.player != null) {
             this.player.setCharacterControl(playerControl);
-            System.out.println("InputHandler: CharacterControl passed to existing Player");
+
         }
     }
 
@@ -146,7 +144,6 @@ public class InputHandler implements ActionListener, AnalogListener {
         currentMouseDeltaX = 0f;
         currentMouseDeltaY = 0f;
 
-        System.out.println("Mouse look enabled - DIRECT camera control with weapon sway active");
     }
 
     public void disableMouseLook() {
@@ -157,7 +154,6 @@ public class InputHandler implements ActionListener, AnalogListener {
         currentMouseDeltaX = 0f;
         currentMouseDeltaY = 0f;
 
-        System.out.println("Mouse look disabled");
     }
 
     @Override
@@ -420,17 +416,17 @@ public class InputHandler implements ActionListener, AnalogListener {
     // Configuration methods
     public void setMoveSpeed(float speed) {
         this.moveSpeed = Math.max(0.05f, Math.min(0.30f, speed));
-        System.out.println("Movement speed set to: " + this.moveSpeed);
+
     }
 
     public void setMouseSensitivity(float sensitivity) {
         this.mouseSensitivity = Math.max(0.5f, Math.min(3.0f, sensitivity));
-        System.out.println("Mouse sensitivity set to: " + this.mouseSensitivity);
+
     }
 
     public void setMouseSmoothingForSway(float smoothing) {
         this.mouseSmoothing = Math.max(0.0f, Math.min(0.95f, smoothing));
-        System.out.println("Mouse sway smoothing set to: " + this.mouseSmoothing);
+
     }
 
     public void cleanup() {

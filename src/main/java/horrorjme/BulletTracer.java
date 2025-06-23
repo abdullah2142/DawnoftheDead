@@ -16,7 +16,7 @@ import com.jme3.texture.Texture;
 public class BulletTracer extends Entity {
 
     private AssetManager assetManager;
-    private float bulletSpeed = 180f;        // Fast bullet speed
+    private float bulletSpeed = 3800f;        // Fast bullet speed
     private float maxRange = 100f;          // Maximum bullet travel distance
     private float travelDistance = 0f;      // How far bullet has traveled
     private float lifeTime = 2f;            // Maximum bullet lifetime
@@ -39,7 +39,6 @@ public class BulletTracer extends Entity {
         Vector3f bulletDirection = direction.normalize();
         this.velocity = bulletDirection.mult(bulletSpeed);
 
-        System.out.println("Bullet tracer created - Speed: " + bulletSpeed + ", Direction: " + bulletDirection);
     }
 
     @Override
@@ -72,7 +71,6 @@ public class BulletTracer extends Entity {
         // Orient bullet in direction of travel
         model.lookAt(position.add(velocity.normalize()), Vector3f.UNIT_Y);
 
-        System.out.println("Bullet tracer model initialized");
     }
 
     @Override
@@ -96,7 +94,7 @@ public class BulletTracer extends Entity {
             if (travelDistance >= maxRange) {
                 hasHit = true;
                 velocity.set(0, 0, 0); // Stop bullet
-                System.out.println("Bullet reached max range: " + maxRange);
+
             }
         }
 
@@ -130,18 +128,14 @@ public class BulletTracer extends Entity {
             // Deal damage if it's an enemy
             if (other.getType() == EntityType.ENEMY) {
                 other.takeDamage(25f); // Bullet damage
-                System.out.println("Bullet hit enemy " + other.getEntityId() + " for 25 damage");
+
             }
 
-            System.out.println("Bullet tracer hit: " + other.getEntityId());
         }
     }
 
     @Override
-    public void onDestroy() {
-        System.out.println("Bullet tracer " + entityId + " destroyed after traveling " +
-                String.format("%.1f", travelDistance) + " units");
-    }
+    public void onDestroy() {}
 
     /**
      * Static factory method for easy creation from WeaponEffectsManager
@@ -166,7 +160,7 @@ public class BulletTracer extends Entity {
             Vector3f direction = velocity.normalize();
             this.velocity = direction.mult(this.bulletSpeed);
         }
-        System.out.println("Bullet speed set to: " + this.bulletSpeed);
+
     }
 
     /**
@@ -174,7 +168,7 @@ public class BulletTracer extends Entity {
      */
     public void setMaxRange(float range) {
         this.maxRange = Math.max(5f, range);
-        System.out.println("Bullet max range set to: " + this.maxRange);
+
     }
 
     /**
@@ -182,7 +176,7 @@ public class BulletTracer extends Entity {
      */
     public void setLifeTime(float time) {
         this.lifeTime = Math.max(0.1f, time);
-        System.out.println("Bullet lifetime set to: " + this.lifeTime + " seconds");
+
     }
 
     /**
@@ -191,7 +185,7 @@ public class BulletTracer extends Entity {
     public void setBulletColor(ColorRGBA color) {
         if (bulletMaterial != null) {
             bulletMaterial.setColor("Color", color);
-            System.out.println("Bullet color set to: " + color);
+
         }
     }
 
@@ -228,7 +222,7 @@ public class BulletTracer extends Entity {
                 setBulletColor(new ColorRGBA(1f, 0.3f, 0.1f, 1f)); // Bright red tracer
                 break;
         }
-        System.out.println("Applied bullet preset: " + preset);
+
     }
 
     public enum BulletPreset {

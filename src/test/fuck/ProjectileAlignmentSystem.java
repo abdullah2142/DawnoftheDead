@@ -41,17 +41,10 @@ public class ProjectileAlignmentSystem {
 
     public ProjectileAlignmentSystem(Camera camera, AppSettings settings) {
         this.camera = camera;
-        this.settings = settings;
-
-        System.out.println("ProjectileAlignmentSystem initialized:");
-        System.out.println("  Screen size: " + settings.getWidth() + "x" + settings.getHeight());
-        System.out.println("  Default weapon type: " + currentWeaponType);
-    }
+        this.settings = settings;}
 
     public void setCrosshairManager(CrosshairManager crosshairManager) {
-        this.crosshairManager = crosshairManager;
-        System.out.println("Crosshair manager connected to projectile alignment");
-    }
+        this.crosshairManager = crosshairManager;}
 
     /**
      * Get the direction vector for where bullets should go
@@ -166,20 +159,13 @@ public class ProjectileAlignmentSystem {
      */
     public void setWeaponType(WeaponType weaponType) {
         this.currentWeaponType = weaponType;
-        this.weaponMuzzleOffset = weaponType.defaultMuzzleOffset.clone();
-
-        System.out.println("Weapon type set to: " + weaponType);
-        System.out.println("Muzzle offset: " + weaponMuzzleOffset);
-    }
+        this.weaponMuzzleOffset = weaponType.defaultMuzzleOffset.clone();}
 
     /**
      * Manually set custom muzzle offset
      */
     public void setCustomMuzzleOffset(float rightOffset, float downOffset, float forwardOffset) {
-        this.weaponMuzzleOffset.set(rightOffset, downOffset, forwardOffset);
-        System.out.println("Custom muzzle offset: Right=" + rightOffset +
-                ", Down=" + downOffset + ", Forward=" + forwardOffset);
-    }
+        this.weaponMuzzleOffset.set(rightOffset, downOffset, forwardOffset);}
 
     /**
      * Enable/disable screen space alignment
@@ -187,11 +173,7 @@ public class ProjectileAlignmentSystem {
     public void setScreenSpaceAlignment(boolean enabled) {
         this.useScreenSpaceAlignment = enabled;
 
-        if (enabled) {
-            System.out.println("Screen space alignment ENABLED - bullets follow crosshair");
-        } else {
-            System.out.println("Screen space alignment DISABLED - bullets follow camera direction");
-        }
+        if (enabled) {} else {}
     }
 
     /**
@@ -199,13 +181,7 @@ public class ProjectileAlignmentSystem {
      */
     public void setupWeapon(WeaponType type, Vector3f weaponScreenPos, float scale) {
         setWeaponType(type);
-        updateWeaponPosition(weaponScreenPos, scale);
-
-        System.out.println("Weapon setup complete:");
-        System.out.println("  Type: " + type);
-        System.out.println("  Screen position: " + weaponScreenPos);
-        System.out.println("  Scale: " + scale);
-    }
+        updateWeaponPosition(weaponScreenPos, scale);}
 
     /**
      * Get target point at specified distance for range calculations
@@ -267,11 +243,7 @@ public class ProjectileAlignmentSystem {
             return hitPoints.get(distance);
         }
 
-        public void printResults() {
-            System.out.println("=== Alignment Test Results ===");
-            for (java.util.Map.Entry<Float, Vector3f> entry : hitPoints.entrySet()) {
-                System.out.println("Distance " + entry.getKey() + ": " + entry.getValue());
-            }
+        public void printResults() {for (java.util.Map.Entry<Float, Vector3f> entry : hitPoints.entrySet()) {}
         }
     }
 
@@ -299,39 +271,16 @@ public class ProjectileAlignmentSystem {
 
     // ==== DEBUG METHODS ====
 
-    public void printAlignmentInfo() {
-        System.out.println("=== Projectile Alignment Status ===");
-        System.out.println("Weapon Type: " + currentWeaponType);
-        System.out.println("Muzzle Offset: " + weaponMuzzleOffset);
-        System.out.println("Screen Alignment: " + (useScreenSpaceAlignment ? "ENABLED" : "DISABLED"));
-        System.out.println("Weapon Screen Pos: " + weaponScreenPosition);
-        System.out.println("Weapon Scale: " + weaponScale);
-
-        if (crosshairManager != null) {
-            System.out.println("Crosshair Connected: YES");
-            System.out.println("Crosshair Alignment: " + crosshairManager.getWeaponAlignment());
-        } else {
-            System.out.println("Crosshair Connected: NO");
-        }
+    public void printAlignmentInfo() {if (crosshairManager != null) {} else {}
 
         // Test current alignment
-        BulletSpawnData spawn = calculateBulletSpawn();
-        System.out.println("Current Bullet Spawn: " + spawn);
-        System.out.println("==================================");
-    }
+        BulletSpawnData spawn = calculateBulletSpawn();}
 
     /**
      * Visual debug - shows where bullets would go
      */
     public void debugShowBulletPath(float maxDistance, int steps) {
-        BulletSpawnData spawn = calculateBulletSpawn();
-
-        System.out.println("=== Debug Bullet Path ===");
-        for (int i = 0; i <= steps; i++) {
+        BulletSpawnData spawn = calculateBulletSpawn();for (int i = 0; i <= steps; i++) {
             float distance = (maxDistance / steps) * i;
-            Vector3f point = spawn.position.add(spawn.direction.mult(distance));
-            System.out.println("Step " + i + " (" + distance + "m): " + point);
-        }
-        System.out.println("========================");
-    }
+            Vector3f point = spawn.position.add(spawn.direction.mult(distance));}}
 }

@@ -43,16 +43,12 @@ public class AudioManager {
     public void loadBackgroundMusic(String key, String audioPath) {
         if (!audioEnabled) return;
 
-        try {
-            System.out.println("Loading background music: " + key + " from " + audioPath);
-            AudioNode music = new AudioNode(assetManager, audioPath, DataType.Stream);
+        try {AudioNode music = new AudioNode(assetManager, audioPath, DataType.Stream);
             music.setLooping(true);
             music.setVolume(masterVolume * 0.7f);
             music.setPositional(false);
             backgroundMusic.put(key, music);
-            rootNode.attachChild(music);
-            System.out.println("Successfully loaded background music: " + key);
-        } catch (Exception e) {
+            rootNode.attachChild(music);} catch (Exception e) {
             System.err.println("Failed to load background music " + key + " at path " + audioPath + ": " + e.getMessage());
             // Create a dummy entry so hasBackgroundMusic works correctly
 
@@ -65,10 +61,7 @@ public class AudioManager {
     public void loadSoundEffect(String key, String audioPath) {
         if (!audioEnabled) return;
 
-        try {
-            System.out.println("Loading sound effect: " + key + " from " + audioPath);
-
-            // For short sounds, always use DataType.Buffer for better performance
+        try {// For short sounds, always use DataType.Buffer for better performance
             AudioNode sfx = new AudioNode(assetManager, audioPath, DataType.Buffer);
 
             // Standard settings for short sound effects
@@ -87,11 +80,7 @@ public class AudioManager {
             soundEffects.put(key, sfx);
 
             // IMPORTANT: Attach to rootNode for proper audio threading
-            rootNode.attachChild(sfx);
-
-            System.out.println("Successfully loaded sound effect: " + key);
-
-        } catch (Exception e) {
+            rootNode.attachChild(sfx);} catch (Exception e) {
             System.err.println("Failed to load sound effect " + key + " at path " + audioPath + ": " + e.getMessage());
             e.printStackTrace();
             // Create a dummy entry so hasSoundEffect works correctly
@@ -113,12 +102,8 @@ public class AudioManager {
                 String wavPath = basePath.replace(".ogg", ".wav");
                 loadSoundEffect(key, wavPath);
                 if (soundEffects.get(key) != null) {
-                    loaded = true;
-                    System.out.println("Loaded " + key + " as WAV");
-                }
-            } catch (Exception e) {
-                System.out.println("WAV loading failed for " + key + ": " + e.getMessage());
-            }
+                    loaded = true;}
+            } catch (Exception e) {}
         }
 
         // Fallback to OGG
@@ -126,12 +111,8 @@ public class AudioManager {
             try {
                 loadSoundEffect(key, basePath);
                 if (soundEffects.get(key) != null) {
-                    loaded = true;
-                    System.out.println("Loaded " + key + " as OGG");
-                }
-            } catch (Exception e) {
-                System.out.println("OGG loading failed for " + key + ": " + e.getMessage());
-            }
+                    loaded = true;}
+            } catch (Exception e) {}
         }
 
         if (!loaded) {
@@ -146,16 +127,12 @@ public class AudioManager {
     public void loadAmbientSound(String key, String audioPath) {
         if (!audioEnabled) return;
 
-        try {
-            System.out.println("Loading ambient sound: " + key + " from " + audioPath);
-            AudioNode ambient = new AudioNode(assetManager, audioPath, DataType.Stream);
+        try {AudioNode ambient = new AudioNode(assetManager, audioPath, DataType.Stream);
             ambient.setLooping(true);
             ambient.setVolume(masterVolume * 0.5f);
             ambient.setPositional(false);
             ambientSounds.put(key, ambient);
-            rootNode.attachChild(ambient);
-            System.out.println("Successfully loaded ambient sound: " + key);
-        } catch (Exception e) {
+            rootNode.attachChild(ambient);} catch (Exception e) {
             System.err.println("Failed to load ambient sound " + key + " at path " + audioPath + ": " + e.getMessage());
             // Create a dummy entry so hasAmbientSound works correctly
 
@@ -184,9 +161,7 @@ public class AudioManager {
             try {
                 music.play();
                 currentMusic.set(music);
-                currentMusicKey = key;
-                System.out.println("Playing background music: " + key);
-            } catch (Exception e) {
+                currentMusicKey = key;} catch (Exception e) {
                 System.err.println("Failed to play background music " + key + ": " + e.getMessage());
             }
         } else {
@@ -272,9 +247,7 @@ public class AudioManager {
         if (ambient != null) {
             try {
                 if (ambient.getStatus() != AudioSource.Status.Playing) {
-                    ambient.play();
-                    System.out.println("Playing ambient sound: " + key);
-                }
+                    ambient.play();}
             } catch (Exception e) {
                 System.err.println("Error playing ambient sound " + key + ": " + e.getMessage());
             }
@@ -366,10 +339,7 @@ public class AudioManager {
     /**
      * Initialize common horror game sounds with JME best practices and fallbacks
      */
-    public void initializeHorrorSounds() {
-        System.out.println("Initializing horror sounds with JME best practices...");
-
-        // Load torch toggle sound with multiple format fallbacks
+    public void initializeHorrorSounds() {// Load torch toggle sound with multiple format fallbacks
         loadTorchToggleSound();
 
         // Background music - these are longer so OGG is fine
@@ -384,10 +354,7 @@ public class AudioManager {
         loadSoundEffectWithFallbacks("gun_reload", "Sounds/gun_reload.wav");
         // Ambient sounds
         loadAmbientSound("wind", "Sounds/wind.ogg");
-        loadAmbientSound("whispers", "Sounds/whispers.ogg");
-
-        System.out.println("Audio initialization complete. Missing files will be skipped gracefully.");
-    }
+        loadAmbientSound("whispers", "Sounds/whispers.ogg");}
 
     /**
      * Special method to load torch toggle sound with multiple fallbacks
@@ -400,12 +367,8 @@ public class AudioManager {
             try {
                 loadSoundEffect("torch_toggle", "Sounds/torch_toggle.wav");
                 if (soundEffects.get("torch_toggle") != null) {
-                    torchLoaded = true;
-                    System.out.println("Loaded torch sound as WAV");
-                }
-            } catch (Exception e) {
-                System.out.println("WAV loading failed for torch_toggle: " + e.getMessage());
-            }
+                    torchLoaded = true;}
+            } catch (Exception e) {}
         }
 
         // Fallback to OGG
@@ -413,12 +376,8 @@ public class AudioManager {
             try {
                 loadSoundEffect("torch_toggle", "Sounds/torch_toggle.ogg");
                 if (soundEffects.get("torch_toggle") != null) {
-                    torchLoaded = true;
-                    System.out.println("Loaded torch sound as OGG");
-                }
-            } catch (Exception e) {
-                System.out.println("OGG loading failed for torch_toggle: " + e.getMessage());
-            }
+                    torchLoaded = true;}
+            } catch (Exception e) {}
         }
 
         // Final fallback - try JME built-in sound for testing
@@ -426,9 +385,7 @@ public class AudioManager {
             try {
                 loadSoundEffect("torch_toggle", "Sound/Environment/Fire.ogg");
                 if (soundEffects.get("torch_toggle") != null) {
-                    torchLoaded = true;
-                    System.out.println("Using built-in JME fire sound for torch toggle");
-                }
+                    torchLoaded = true;}
             } catch (Exception e) {
                 System.err.println("Built-in sound also failed for torch_toggle: " + e.getMessage());
             }
@@ -443,14 +400,7 @@ public class AudioManager {
     /**
      * Initialize with minimal/no audio for testing
      */
-    public void initializeMinimalAudio() {
-        System.out.println("Initializing minimal audio setup...");
-
-        // Create placeholder entries so the game doesn't crash
-
-
-        System.out.println("Minimal audio setup complete - audio disabled.");
-    }
+    public void initializeMinimalAudio() {// Create placeholder entries so the game doesn't crash}
 
     // Getters
     public float getMasterVolume() {

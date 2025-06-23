@@ -33,50 +33,30 @@ public class PostProcessingManager {
     /**
      * Initializes all the post-processing filters and adds them to the viewport.
      */
-    public void initializeEffects() {
-        System.out.println("Setting up horror post-processing effects...");
-
-        postProcessor = new FilterPostProcessor(assetManager);
+    public void initializeEffects() {postProcessor = new FilterPostProcessor(assetManager);
 
         // 1. FOG
         FogFilter fog = new FogFilter();
         fog.setFogColor(new ColorRGBA(0.1f, 0.1f, 0.1f, 1.0f));
         fog.setFogDensity(0.5f);
         fog.setFogDistance(50f);
-        postProcessor.addFilter(fog);
-        System.out.println("Added FOG filter");
-
-        // 2. DEPTH OF FIELD
+        postProcessor.addFilter(fog);// 2. DEPTH OF FIELD
         DepthOfFieldFilter dof = new DepthOfFieldFilter();
         dof.setFocusDistance(10f);
         dof.setFocusRange(15f);
         dof.setBlurScale(1.4f);
-        postProcessor.addFilter(dof);
-        System.out.println("Added DOF filter");
-
-        // 3. BLOOM
+        postProcessor.addFilter(dof);// 3. BLOOM
         BloomFilter bloom = new BloomFilter(BloomFilter.GlowMode.Objects);
         bloom.setBloomIntensity(1.5f);
         bloom.setBlurScale(1.5f);
         bloom.setExposurePower(5f);
         bloom.setDownSamplingFactor(2f);
-        postProcessor.addFilter(bloom);
-        System.out.println("Added BLOOM filter");
-
-        // 4. NOISE
+        postProcessor.addFilter(bloom);// 4. NOISE
         noiseFilter = new ColorOverlayFilter();
         noiseFilter.setColor(ColorRGBA.White);
-        postProcessor.addFilter(noiseFilter);
-        System.out.println("Added NOISE filter");
-
-        // 5. FADE
+        postProcessor.addFilter(noiseFilter);// 5. FADE
         fadeFilter = new FadeFilter();
-        postProcessor.addFilter(fadeFilter);
-        System.out.println("Added FADE filter");
-
-        viewPort.addProcessor(postProcessor);
-        System.out.println("Horror post-processing initialized.");
-    }
+        postProcessor.addFilter(fadeFilter);viewPort.addProcessor(postProcessor);}
 
     /**
      * Updates time-based or state-based horror effects.

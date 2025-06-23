@@ -40,23 +40,14 @@ public class WeaponEffectsManager {
         this.entityManager = entityManager;
 
         // Initialize projectile alignment system
-        //initializeAlignmentSystem();
-
-        System.out.println("Enhanced WeaponEffectsManager initialized:");
-        System.out.println("  Features: Shell casings, Bullet tracers, Perfect alignment");
-        System.out.println("  Alignment system: " + (alignmentSystemEnabled ? "ENABLED" : "DISABLED"));
-    }
+        //initializeAlignmentSystem();}
 
     /**
      * Initialize the projectile alignment system
 
     private void initializeAlignmentSystem() {
         alignmentSystem = new ProjectileAlignmentSystem(camera, null); // Settings will be set later
-        alignmentSystem.setWeaponType(currentWeaponType);
-
-        System.out.println("Projectile alignment system initialized");
-        System.out.println("Default weapon type: " + currentWeaponType);
-    }
+        alignmentSystem.setWeaponType(currentWeaponType);}
 */
 
     /**
@@ -64,9 +55,7 @@ public class WeaponEffectsManager {
      */
     public void setCrosshairManager(CrosshairManager crosshairManager) {
         if (alignmentSystem != null) {
-            alignmentSystem.setCrosshairManager(crosshairManager);
-            System.out.println("Crosshair manager connected - perfect bullet alignment active");
-        }
+            alignmentSystem.setCrosshairManager(crosshairManager);}
     }
 
     /**
@@ -85,14 +74,7 @@ public class WeaponEffectsManager {
      */
     private void fireWeaponWithAlignment() {
         // Get perfect spawn data from alignment system
-        ProjectileAlignmentSystem.BulletSpawnData spawnData = alignmentSystem.calculateBulletSpawn();
-
-        System.out.println("Firing with perfect alignment:");
-        System.out.println("  Spawn position: " + spawnData.position);
-        System.out.println("  Direction: " + spawnData.direction);
-        System.out.println("  Speed: " + spawnData.speed);
-
-        // 1. Eject shell casing (uses weapon position)
+        ProjectileAlignmentSystem.BulletSpawnData spawnData = alignmentSystem.calculateBulletSpawn();// 1. Eject shell casing (uses weapon position)
         if (shellCasingsEnabled) {
             ejectShellCasing(spawnData.position, spawnData.direction);
         }
@@ -100,10 +82,7 @@ public class WeaponEffectsManager {
         // 2. Fire bullet tracer with perfect alignment
         if (bulletTracersEnabled) {
             fireBulletTracerAligned(spawnData);
-        }
-
-        System.out.println("Enhanced weapon fired - perfect alignment achieved");
-    }
+        }}
 
     /**
      * Legacy firing method (fallback)
@@ -118,10 +97,7 @@ public class WeaponEffectsManager {
 
         if (bulletTracersEnabled) {
             fireBulletTracerLegacy(weaponPosition, cameraDirection);
-        }
-
-        System.out.println("Legacy weapon fired");
-    }
+        }}
 
     /**
      * Fire bullet tracer with perfect alignment data
@@ -137,9 +113,7 @@ public class WeaponEffectsManager {
             // Set precise velocity
             tracer.setBulletSpeed(spawnData.speed);
 
-            entityManager.addEntity(tracer);
-            System.out.println("Perfect-aligned bullet tracer fired");
-        } else {
+            entityManager.addEntity(tracer);} else {
             System.err.println("Cannot fire aligned bullet - entityManager is null");
         }
     }
@@ -172,9 +146,7 @@ public class WeaponEffectsManager {
         if (entityManager != null) {
             BulletTracer tracer = BulletTracer.createBulletTracer(weaponPosition, direction, assetManager);
             configureBulletForWeaponType(tracer);
-            entityManager.addEntity(tracer);
-            System.out.println("Legacy bullet tracer fired");
-        } else {
+            entityManager.addEntity(tracer);} else {
             System.err.println("Cannot fire bullet tracer - entityManager is null");
         }
     }
@@ -185,9 +157,7 @@ public class WeaponEffectsManager {
     private void ejectShellCasing(Vector3f weaponPosition, Vector3f direction) {
         if (bulletAppState != null && entityManager != null) {
             ShellCasing shell = ShellCasing.createShellCasing(weaponPosition, direction, assetManager, bulletAppState);
-            entityManager.addEntity(shell);
-            System.out.println("Shell casing ejected");
-        } else {
+            entityManager.addEntity(shell);} else {
             System.err.println("Cannot eject shell casing - physics or entityManager is null");
         }
     }
@@ -204,13 +174,7 @@ public class WeaponEffectsManager {
         // Update alignment system
         if (alignmentSystem != null) {
             alignmentSystem.setupWeapon(weaponType, screenPosition, scale);
-        }
-
-        System.out.println("Weapon configuration updated:");
-        System.out.println("  Type: " + weaponType);
-        System.out.println("  Screen position: " + screenPosition);
-        System.out.println("  Scale: " + scale);
-    }
+        }}
 
     /**
      * Quick weapon setup with preset configurations
@@ -229,10 +193,7 @@ public class WeaponEffectsManager {
             case SHOTGUN:
                 updateWeaponConfiguration(ProjectileAlignmentSystem.WeaponType.SHOTGUN, screenPosition, scale);
                 break;
-        }
-
-        System.out.println("Applied weapon preset: " + preset);
-    }
+        }}
 
     public enum WeaponPreset {
         ASSAULT_RIFLE,   // High accuracy, medium damage
@@ -273,30 +234,19 @@ public class WeaponEffectsManager {
      * Enable/disable shell casing ejection
      */
     public void setShellCasingsEnabled(boolean enabled) {
-        this.shellCasingsEnabled = enabled;
-        System.out.println("Shell casings " + (enabled ? "ENABLED" : "DISABLED"));
-    }
+        this.shellCasingsEnabled = enabled;}
 
     /**
      * Enable/disable bullet tracers
      */
     public void setBulletTracersEnabled(boolean enabled) {
-        this.bulletTracersEnabled = enabled;
-        System.out.println("Bullet tracers " + (enabled ? "ENABLED" : "DISABLED"));
-    }
+        this.bulletTracersEnabled = enabled;}
 
     /**
      * Enable/disable alignment system
      */
     public void setAlignmentSystemEnabled(boolean enabled) {
-        this.alignmentSystemEnabled = enabled;
-        System.out.println("Alignment system " + (enabled ? "ENABLED" : "DISABLED"));
-
-        if (enabled) {
-            System.out.println("Bullets will use perfect crosshair alignment");
-        } else {
-            System.out.println("Bullets will use legacy camera direction");
-        }
+        this.alignmentSystemEnabled = enabled;if (enabled) {} else {}
     }
 
     /**
@@ -321,9 +271,7 @@ public class WeaponEffectsManager {
             float[] testDistances = {10f, 25f, 50f, 100f};
             ProjectileAlignmentSystem.AlignmentTestResult result = alignmentSystem.testAlignment(testDistances);
             result.printResults();
-        } else {
-            System.out.println("Alignment system not available for testing");
-        }
+        } else {}
     }
 
     /**
@@ -388,7 +336,5 @@ public class WeaponEffectsManager {
     /**
      * Clean up all effects
      */
-    public void cleanup() {
-        System.out.println("Enhanced WeaponEffectsManager cleaned up");
-    }
+    public void cleanup() {}
 }

@@ -101,14 +101,10 @@ public class OptionsManager {
 
     // Future: Save/Load from file
     public void saveSettings() {
-        // TODO: Implement saving to preferences file
-        System.out.println("Settings would be saved here");
-    }
+        // TODO: Implement saving to preferences file}
 
     public void loadSettings() {
-        // TODO: Implement loading from preferences file
-        System.out.println("Settings would be loaded here");
-    }
+        // TODO: Implement loading from preferences file}
 
     // Apply settings to game systems
     public void applySettings(Player player, AudioManager audioManager) {
