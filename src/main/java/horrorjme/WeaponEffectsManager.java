@@ -26,13 +26,29 @@ public class WeaponEffectsManager {
         PISTOL(new Vector3f(0.1f, -0.4f, 0.4f)),
         RIFLE(new Vector3f(0.2f, -0.3f, 0.8f)),
         SMG(new Vector3f(0.15f, -0.35f, 0.6f)),
-        SHOTGUN(new Vector3f(0.25f, -0.25f, 1.0f));
+        SHOTGUN(new Vector3f(0.25f, -0.25f, 1.0f)),
+        REVOLVER(new Vector3f(0.15f, -0.35f, 0.5f)); // NEW: Revolver offset
 
         public final Vector3f defaultMuzzleOffset;
 
         WeaponType(Vector3f offset) {
             this.defaultMuzzleOffset = offset;
         }
+    }
+
+    public void setCurrentHorrorWeapon(horrorjme.WeaponType horrorWeapon) {
+        switch (horrorWeapon) {
+            case STEN_GUN:
+                this.currentWeaponType = WeaponType.SMG;
+                break;
+            case REVOLVER:
+                this.currentWeaponType = WeaponType.REVOLVER;
+                break;
+            default:
+                this.currentWeaponType = WeaponType.PISTOL;
+                break;
+        }
+        System.out.println("WeaponEffectsManager: Set weapon to " + horrorWeapon + " -> " + currentWeaponType);
     }
 
     // Weapon configuration
@@ -95,18 +111,27 @@ public class WeaponEffectsManager {
      */
     private void configureBulletForWeaponType(BulletTracer bullet) {
         switch (currentWeaponType) {
+            case RIFLE:
+            case SMG:
+                bullet.setBulletPreset(BulletTracer.BulletPreset.FAST_RIFLE);
+                break;
+
+            case REVOLVER:
+                bullet.setBulletPreset(BulletTracer.BulletPreset.PISTOL_ROUND);
+                bullet.setBulletSpeed(75f); // Revolver speed
+                bullet.setBulletDamage(30f); // Higher damage than regular pistol
+                break;
+
             case PISTOL:
                 bullet.setBulletPreset(BulletTracer.BulletPreset.PISTOL_ROUND);
                 break;
-            case RIFLE:
-                bullet.setBulletPreset(BulletTracer.BulletPreset.FAST_RIFLE);
-                break;
-            case SMG:
-                bullet.setBulletPreset(BulletTracer.BulletPreset.PISTOL_ROUND);
-                bullet.setBulletSpeed(90f); // Slightly faster than pistol
-                break;
+
             case SHOTGUN:
                 bullet.setBulletPreset(BulletTracer.BulletPreset.SHOTGUN_PELLET);
+                break;
+
+            default:
+                bullet.setBulletPreset(BulletTracer.BulletPreset.PISTOL_ROUND);
                 break;
         }
     }

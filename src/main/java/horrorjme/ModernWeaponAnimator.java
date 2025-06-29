@@ -190,11 +190,7 @@ public class ModernWeaponAnimator {
         this.screenHeight = screenHeight;
 
         initializePictures();
-        setupDefaultAnimations();
-
-
-
-
+        // REMOVED: setupDefaultAnimations(); - This was causing conflicts
     }
 
     /**
@@ -258,42 +254,125 @@ public class ModernWeaponAnimator {
      * @param basePath Base path like "Textures/Weapons/gun_"
      * @param frameCount Total number of frames (19 for your gun)
      */
-    public void loadFrames(String basePath, int frameCount) {
+    public void loadFrames(String basePath, int frameCount, WeaponType weaponType) {
         frames = new Texture2D[frameCount];
 
         for (int i = 0; i < frameCount; i++) {
-            // Build path: "Textures/Weapons/gun_000.png", "gun_001.png", etc.
-            String path = basePath + String.format("%03d", i) + ".png";
+            String path;
+
+            // Handle different naming conventions
+            if (basePath.contains("sprWeaponRevolver_")) {
+                // Revolver uses two-digit zero-padded: sprWeaponRevolver_00.png to sprWeaponRevolver_31.png
+                path = basePath + String.format("%02d", i) + ".png";
+            } else {
+                // Other weapons use three-digit zero-padded: sten_frame_000.png to sten_frame_018.png
+                path = basePath + String.format("%03d", i) + ".png";
+            }
 
             try {
-                // Load texture through JME3's asset manager
                 Texture2D texture = (Texture2D) assetManager.loadTexture(path);
-
-                // Set texture filtering for pixel-perfect rendering
                 texture.setMagFilter(Texture.MagFilter.Nearest);
                 texture.setMinFilter(Texture.MinFilter.NearestNoMipMaps);
-
                 frames[i] = texture;
-
+                System.out.println("Loaded frame " + i + ": " + path);
             } catch (Exception e) {
                 System.err.println("Failed to load weapon frame: " + path);
                 e.printStackTrace();
             }
         }
 
-        // Set initial frame on both Pictures
+        // Set initial frame and setup weapon-specific animations
         if (frames.length > 0) {
+            setupAnimationsForWeapon(weaponType);
             setFrame(0);
-
+            System.out.println("Loaded " + frames.length + " frames for " + weaponType.displayName);
         } else {
             System.err.println("No weapon frames were loaded!");
         }
     }
 
-    /**
-     * Setup default gun animations with proper timing
-     */
-    private void setupDefaultAnimations() {
+    private void setupAnimationsForWeapon(WeaponType weaponType) {
+        animations.clear(); // Clear existing animations
+
+        switch (weaponType) {
+            case STEN_GUN:
+                setupStenGunAnimations();
+                break;
+
+            case REVOLVER:
+                setupRevolverAnimations();
+                break;
+
+            default:
+                setupGenericAnimations();
+                break;
+        }
+
+        System.out.println("Setup animations for " + weaponType.displayName);
+    }
+
+    private void setupRevolverAnimations() {
+        // FIRE - frames 1-6 (5 transitions: 1→2→3→4→5→6)
+        float[] shootDurations = {0.03f, 0.02f, 0.02f, 0.02f, 0.03f}; // 5 transitions
+        AnimationCurve[] shootCurves = {
+                AnimationCurve.EASE_IN,      // 1→2: Building up
+                AnimationCurve.OVERSHOOT,    // 2→3: Peak fire
+                AnimationCurve.LINEAR,       // 3→4: Hold
+                AnimationCurve.LINEAR,       // 4→5: Hold
+                AnimationCurve.EASE_OUT      // 5→6: Return
+        };
+        animations.put("shoot", new AnimationSequence("shoot", 1, 7, shootDurations, shootCurves, false, null));
+
+        // RELOAD - frames 8-30 (22 transitions: 8→9→10→...→30)
+        int reloadTransitions = 22; // 8 to 30 = 22 transitions
+        float[] reloadDurations = new float[reloadTransitions];
+        AnimationCurve[] reloadCurves = new AnimationCurve[reloadTransitions];
+
+        // Revolver reload timing - cylinder opening, ejecting, loading, closing
+
+        // Cylinder opening (frames 8-12): smooth and deliberate
+        for (int i = 0; i < 5; i++) {
+            reloadDurations[i] = 0.08f;
+            reloadCurves[i] = AnimationCurve.EASE_IN_OUT;
+        }
+
+        // Ejecting shells (frames 12-16): quick
+        for (int i = 5; i < 9; i++) {
+            reloadDurations[i] = 0.06f;
+            reloadCurves[i] = AnimationCurve.EASE_OUT;
+        }
+
+        // Loading new rounds (frames 16-25): methodical
+        for (int i = 9; i < 18; i++) {
+            reloadDurations[i] = 0.09f;
+            reloadCurves[i] = AnimationCurve.LINEAR;
+        }
+
+        // Cylinder closing (frames 25-30): satisfying snap
+        for (int i = 18; i < 22; i++) {
+            reloadDurations[i] = 0.07f;
+            reloadCurves[i] = AnimationCurve.OVERSHOOT;
+        }
+
+        // REVOLVER-SPECIFIC SCALING AND POSITIONING
+        setWeaponScale(3.5f);  // Adjust this value - try 3f, 4f, 5f etc.
+
+        // Adjust position (right, down, forward)
+        Vector3f revolverPosition = new Vector3f(
+                screenWidth * 0.55f,              // 10% from left edge
+                screenHeight * -0.05f,            // 5% from top
+                0
+        );
+        setWeaponPosition(revolverPosition);
+
+        System.out.println("Revolver animations: Shoot (1-6), Reload (8-30)");
+
+        animations.put("reload", new AnimationSequence("reload", 8, 31, reloadDurations, reloadCurves, false, null));
+
+        System.out.println("Revolver animations: Shoot (1-6), Reload (8-30)");
+    }
+
+    private void setupStenGunAnimations() {
         // SHOOT - frames 1-3
         float[] shootDurations = {0.02f, 0.02f, 0.03f}; // 3 transitions: 1->2, 2->3, 3->done
         AnimationCurve[] shootCurves = {
@@ -329,9 +408,44 @@ public class ModernWeaponAnimator {
             reloadCurves[i] = AnimationCurve.OVERSHOOT;
         }
 
-        // RELOAD: frames 4-17 (endFrame 18 means "up to but not including 18")
+        // STEN GUN-SPECIFIC SCALING AND POSITIONING
+        setWeaponScale(7f);  // Your current scale
+
+        // Keep default position or adjust if needed
+        Vector3f stenPosition = new Vector3f(
+                screenWidth * 0.35f,              // 10% from left edge
+                screenHeight * -0.05f,            // 5% from top
+                0
+        );
+        setWeaponPosition(stenPosition);
+
         animations.put("reload", new AnimationSequence("reload", 4, 18, reloadDurations, reloadCurves, false, null));
 
+        System.out.println("Sten Gun animations: Shoot (1-3), Reload (4-17)");
+    }
+
+    /**
+     * Setup default gun animations with proper timing
+     */
+    private void setupGenericAnimations() {
+        // Simple 2-frame shoot
+        float[] shootDurations = {0.03f, 0.04f};
+        AnimationCurve[] shootCurves = {AnimationCurve.LINEAR, AnimationCurve.EASE_OUT};
+        animations.put("shoot", new AnimationSequence("shoot", 1, 3, shootDurations, shootCurves, false, null));
+
+        // Generic reload from frame 3 to end
+        if (frames != null && frames.length > 3) {
+            int reloadFrames = frames.length - 3;
+            float[] reloadDurations = new float[Math.max(1, reloadFrames - 1)];
+            AnimationCurve[] reloadCurves = new AnimationCurve[reloadDurations.length];
+            for (int i = 0; i < reloadDurations.length; i++) {
+                reloadDurations[i] = 0.1f;
+                reloadCurves[i] = AnimationCurve.LINEAR;
+            }
+            animations.put("reload", new AnimationSequence("reload", 3, frames.length, reloadDurations, reloadCurves, false, null));
+        }
+
+        System.out.println("Generic animations setup");
     }
 
     /**

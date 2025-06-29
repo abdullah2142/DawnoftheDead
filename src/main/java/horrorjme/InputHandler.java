@@ -11,6 +11,7 @@ import com.jme3.math.FastMath;
 
 /**
  * Enhanced InputHandler with proper mouse delta tracking for weapon sway AND lighting controls
+ * COMPLETE VERSION with weapon switching and debug keys
  */
 public class InputHandler implements ActionListener, AnalogListener {
 
@@ -53,12 +54,6 @@ public class InputHandler implements ActionListener, AnalogListener {
         this.game = game;
         this.cam = game.getCamera();
         setupInputMappings();
-
-
-
-
-
-
     }
 
     public void setPlayer(Player player) {
@@ -67,7 +62,6 @@ public class InputHandler implements ActionListener, AnalogListener {
         // IMPORTANT: Pass CharacterControl to Player for ground detection
         if (this.playerControl != null && player != null) {
             player.setCharacterControl(this.playerControl);
-
         }
     }
 
@@ -77,7 +71,6 @@ public class InputHandler implements ActionListener, AnalogListener {
         // IMPORTANT: If player is already set, pass the CharacterControl to it
         if (this.player != null) {
             this.player.setCharacterControl(playerControl);
-
         }
     }
 
@@ -97,6 +90,13 @@ public class InputHandler implements ActionListener, AnalogListener {
         inputManager.addMapping("Fire", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
         inputManager.addMapping("Reload", new KeyTrigger(KeyInput.KEY_R));
 
+        // NEW: Weapon switching controls
+        inputManager.addMapping("Weapon1", new KeyTrigger(KeyInput.KEY_1));
+        inputManager.addMapping("Weapon2", new KeyTrigger(KeyInput.KEY_2));
+        inputManager.addMapping("Weapon3", new KeyTrigger(KeyInput.KEY_3));
+       // inputManager.addMapping("WeaponNext", new MouseButtonTrigger(MouseInput.BUTTON_WHEEL_UP));
+      //  inputManager.addMapping("WeaponPrev", new MouseButtonTrigger(MouseInput.BUTTON_WHEEL_DOWN));
+
         // Menu controls
         inputManager.addMapping("MenuUp", new KeyTrigger(KeyInput.KEY_UP));
         inputManager.addMapping("MenuDown", new KeyTrigger(KeyInput.KEY_DOWN));
@@ -109,6 +109,11 @@ public class InputHandler implements ActionListener, AnalogListener {
         inputManager.addMapping("Lightning", new KeyTrigger(KeyInput.KEY_F10));
         inputManager.addMapping("ToggleFlicker", new KeyTrigger(KeyInput.KEY_F11));
 
+        // NEW: Debug keys for testing revolver
+        inputManager.addMapping("SpawnRevolver", new KeyTrigger(KeyInput.KEY_F5));
+        inputManager.addMapping("GiveRevolver", new KeyTrigger(KeyInput.KEY_F6));
+        inputManager.addMapping("TestRevolver", new KeyTrigger(KeyInput.KEY_F7));
+
         // Mouse look - DIRECT CONTROL with enhanced delta tracking
         inputManager.addMapping("MouseLookX", new MouseAxisTrigger(MouseInput.AXIS_X, false));
         inputManager.addMapping("MouseLookX-", new MouseAxisTrigger(MouseInput.AXIS_X, true));
@@ -120,12 +125,14 @@ public class InputHandler implements ActionListener, AnalogListener {
                 // Movement
                 "MoveForward", "MoveBackward", "StrafeLeft", "StrafeRight",
                 "Jump", "Sprint", "ToggleTorch",
+                // Weapons
+                "Fire", "Reload", "Weapon1", "Weapon2", "Weapon3", "WeaponNext", "WeaponPrev",
                 // Menu
                 "MenuUp", "MenuDown", "MenuSelect", "MenuBack", "Escape",
                 // Mouse look
                 "MouseLookX", "MouseLookX-", "MouseLookY", "MouseLookY-",
-                //Gun
-                "Fire", "Reload",
+                // Debug keys
+                "SpawnRevolver", "GiveRevolver", "TestRevolver",
                 // LIGHTING CONTROLS - Simplified
                 "ToggleShadows", "Lightning", "ToggleFlicker"
         );
@@ -143,7 +150,6 @@ public class InputHandler implements ActionListener, AnalogListener {
         // Reset mouse deltas
         currentMouseDeltaX = 0f;
         currentMouseDeltaY = 0f;
-
     }
 
     public void disableMouseLook() {
@@ -153,7 +159,6 @@ public class InputHandler implements ActionListener, AnalogListener {
         // Reset mouse deltas when disabling
         currentMouseDeltaX = 0f;
         currentMouseDeltaY = 0f;
-
     }
 
     @Override
@@ -200,8 +205,6 @@ public class InputHandler implements ActionListener, AnalogListener {
             game.pauseGame();
             return;
         }
-
-
 
         // Movement controls - Update player movement flags for footstep detection
         switch (name) {
@@ -252,6 +255,51 @@ public class InputHandler implements ActionListener, AnalogListener {
                     player.reload();
                 }
                 break;
+
+            // NEW: Weapon switching controls
+            case "Weapon1":
+                if (!isPressed && player != null) {
+                    boolean switched = player.switchWeapon(1);
+                    if (switched) {
+                        System.out.println("Switched to weapon slot 1 (Sten Gun)");
+                    }
+                }
+                break;
+            case "Weapon2":
+                if (!isPressed && player != null) {
+                    boolean switched = player.switchWeapon(2);
+                    if (switched) {
+                        System.out.println("Switched to weapon slot 2 (Revolver)");
+                    }
+                }
+                break;
+            case "Weapon3":
+                if (!isPressed && player != null) {
+                    boolean switched = player.switchWeapon(3);
+                    if (switched) {
+                        System.out.println("Switched to weapon slot 3");
+                    }
+                }
+                break;
+            case "WeaponNext":
+                if (!isPressed && player != null) {
+                    boolean switched = player.switchToNextWeapon();
+                    if (switched) {
+                        System.out.println("Next weapon: " + player.getCurrentWeaponName());
+                    }
+                }
+                break;
+            case "WeaponPrev":
+                if (!isPressed && player != null) {
+                    boolean switched = player.switchToPreviousWeapon();
+                    if (switched) {
+                        System.out.println("Previous weapon: " + player.getCurrentWeaponName());
+                    }
+                }
+                break;
+
+            // NEW: Debug controls for testing revolver
+
         }
 
         // Update physics movement
@@ -416,17 +464,14 @@ public class InputHandler implements ActionListener, AnalogListener {
     // Configuration methods
     public void setMoveSpeed(float speed) {
         this.moveSpeed = Math.max(0.05f, Math.min(0.30f, speed));
-
     }
 
     public void setMouseSensitivity(float sensitivity) {
         this.mouseSensitivity = Math.max(0.5f, Math.min(3.0f, sensitivity));
-
     }
 
     public void setMouseSmoothingForSway(float smoothing) {
         this.mouseSmoothing = Math.max(0.0f, Math.min(0.95f, smoothing));
-
     }
 
     public void cleanup() {

@@ -49,13 +49,6 @@ dependencies {
 
 // Runtime JVM arguments optimized for physics games
 run {
-    jvmArgs = [
-            '-Xms1g',                              // Initial heap size
-            '-Xmx4g',                              // Maximum heap size
-            '-XX:+UseG1GC',                        // G1 garbage collector for better performance
-            '-XX:MaxGCPauseMillis=10',             // Low GC pause for smooth gameplay
-            '-Djava.awt.headless=false'            // Allow AWT for JME features
-    ]
 
     // System properties for JME + Minie
     systemProperties = [

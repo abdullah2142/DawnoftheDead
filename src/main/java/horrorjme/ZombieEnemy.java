@@ -22,12 +22,25 @@ public class ZombieEnemy extends SpriteEntity {
     private float lastAttackTime = 0f;
     private float attackCooldown = 2f;
 
+    private boolean dropProcessed = false;
+
     private float deathTimer = 0f;
     private static final float DEATH_ANIMATION_TIME = 1.2f;
 
     // ADDED: Sprite appearance settings
     private float spriteScale = 0.5f;           // Scale factor for zombie sprites (0.8 = 80% size)
     private Vector3f spriteOffset = new Vector3f(0f, 0, 0); // Offset for fine-tuning position
+
+    public boolean hasProcessedDrop() {
+        return dropProcessed;
+    }
+
+    public void setDropProcessed(boolean processed) {
+        this.dropProcessed = processed;
+        if (processed) {
+            System.out.println("Zombie " + entityId + " drop marked as processed");
+        }
+    }
 
     private void adjustSpritePosition() {
         if (spriteAnimator != null) {

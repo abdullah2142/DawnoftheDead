@@ -16,6 +16,10 @@ import com.jme3.scene.control.Control;
 
 import java.io.IOException;
 
+/**
+ * CORRECTED Player class - REPLACE YOUR EXISTING Player.java with this version
+ * Major fixes: Proper weapon system initialization, game instance connection
+ */
 public class Player implements Control {
     // Player state
     private Vector3f position;
@@ -27,6 +31,9 @@ public class Player implements Control {
     private Camera camera;
     private Node rootNode;
     private AudioManager audioManager;
+
+    // CRITICAL FIX: Reference to main game for weapon system initialization
+    private HorrorGameJME gameInstance;
 
     // Physics reference for ground detection
     private CharacterControl characterControl;
@@ -48,22 +55,27 @@ public class Player implements Control {
     private float footstepTimer = 0f;
     private float footstepInterval = 0.5f;
 
-    // Weapon systems (UPDATED: Split into two systems)
+    // NEW: Weapon and Ammo Inventory Systems
+    private WeaponInventory weaponInventory;
+    private AmmoInventory ammoInventory;
+
+    // Weapon systems (FIXED: Now conditionally created)
     private ModernWeaponAnimator weaponAnimator;
-    private WeaponEffectsManager weaponEffectsManager;     // Shell casings + bullet tracers
-    private ModelBasedMuzzleFlash muzzleFlashSystem;       // 3D muzzle flash effects
+    private WeaponEffectsManager weaponEffectsManager;
+    private ModelBasedMuzzleFlash muzzleFlashSystem;
 
     // ENHANCED: Mouse tracking for weapon sway
     private float currentMouseDeltaX = 0f;
     private float currentMouseDeltaY = 0f;
-    private float mouseDeltaDecay = 0.92f; // How fast mouse deltas decay on the weapon side
+    private float mouseDeltaDecay = 0.92f;
 
-    // Weapon properties
-    private int currentAmmo = 30;
-    private int maxAmmo = 30;
+    // UPDATED: Weapon properties now managed by inventory
     private boolean isReloading = false;
     private float fireRate = 0.15f; // Time between shots
     private float lastFireTime = 0f;
+
+    // CRITICAL FIX: Flag to track if weapon systems have been initialized
+    private boolean weaponSystemsInitialized = false;
 
     public Player(Camera camera, Node rootNode, int[][] mapData, AudioManager audioManager) {
         this.camera = camera;
@@ -75,29 +87,37 @@ public class Player implements Control {
         Vector3f initialLookAt = position.add(new Vector3f(0, 0, -1));
         camera.lookAt(initialLookAt, Vector3f.UNIT_Y);
 
-        setupTorch();
+        // NEW: Initialize inventory systems
+        weaponInventory = new WeaponInventory();
+        ammoInventory = new AmmoInventory();
 
+        setupTorch();
     }
 
     public Player(Camera camera, Node rootNode, int[][] mapData) {
         this(camera, rootNode, mapData, null);
     }
 
-    // NEW: Set muzzle flash system
-    public void setMuzzleFlashSystem(ModelBasedMuzzleFlash muzzleFlashSystem) {
-        this.muzzleFlashSystem = muzzleFlashSystem;
-
+    // CRITICAL FIX: Set game instance reference for weapon system initialization
+    public void setGameInstance(HorrorGameJME gameInstance) {
+        this.gameInstance = gameInstance;
+        System.out.println("Player: Game instance reference set - " + (gameInstance != null ? "SUCCESS" : "FAILED"));
     }
 
-    // UPDATED: Set weapon effects manager (shell casings + tracers)
+    // NEW: Set muzzle flash system (conditionally)
+    public void setMuzzleFlashSystem(ModelBasedMuzzleFlash muzzleFlashSystem) {
+        this.muzzleFlashSystem = muzzleFlashSystem;
+        System.out.println("Player: Muzzle flash system set - " + (muzzleFlashSystem != null ? "SUCCESS" : "NULL"));
+    }
+
+    // UPDATED: Set weapon effects manager (conditionally)
     public void setWeaponEffectsManager(WeaponEffectsManager weaponEffectsManager) {
         this.weaponEffectsManager = weaponEffectsManager;
-
+        System.out.println("Player: Weapon effects manager set - " + (weaponEffectsManager != null ? "SUCCESS" : "NULL"));
     }
 
     public void setCharacterControl(CharacterControl characterControl) {
         this.characterControl = characterControl;
-
     }
 
     private void setupTorch() {
@@ -151,7 +171,6 @@ public class Player implements Control {
 
     @Override
     public void setSpatial(Spatial spatial) {
-
     }
 
     public void update(float tpf) {
@@ -161,18 +180,28 @@ public class Player implements Control {
         updateTorchPosition();
         updateFootstepAudio(tpf);
 
-        // UPDATED: Update split weapon effects systems
+        // CRITICAL FIX: Only update weapon systems if we have a weapon AND systems are initialized
+        if (hasAnyWeapon() && weaponSystemsInitialized) {
+            updateWeaponSystems(tpf);
+        }
+    }
+
+    /**
+     * NEW: Update weapon systems only when player has weapons
+     */
+    private void updateWeaponSystems(float tpf) {
+        // Update weapon effects
         if (weaponEffectsManager != null) {
             weaponEffectsManager.update(tpf);
         }
 
-        // NEW: Update 3D muzzle flash system
+        // Update 3D muzzle flash system
         if (muzzleFlashSystem != null) {
             muzzleFlashSystem.update(tpf);
         }
 
         if (weaponAnimator != null) {
-            // ENHANCED: Pass mouse deltas directly to weapon for sway
+            // Pass mouse deltas directly to weapon for sway
             weaponAnimator.setMouseSway(currentMouseDeltaX, currentMouseDeltaY);
 
             // Pass movement velocity to weapon for walking animation
@@ -186,7 +215,7 @@ public class Player implements Control {
                 finishReload();
             }
 
-            // ENHANCED: Apply decay to mouse deltas for smooth sway
+            // Apply decay to mouse deltas for smooth sway
             currentMouseDeltaX *= mouseDeltaDecay;
             currentMouseDeltaY *= mouseDeltaDecay;
 
@@ -198,33 +227,188 @@ public class Player implements Control {
 
     @Override
     public void render(RenderManager rm, ViewPort vp) {
-
     }
 
     public void setWeaponAnimator(ModernWeaponAnimator weaponAnimator) {
         this.weaponAnimator = weaponAnimator;
-
+        System.out.println("Player: Weapon animator set - " + (weaponAnimator != null ? "SUCCESS" : "NULL"));
     }
 
     /**
-     * ENHANCED: Fire weapon with split effects systems
+     * CRITICAL FIX: Add weapon to player inventory with proper system initialization
+     */
+    public boolean addWeapon(WeaponType weaponType, int startingAmmo) {
+        if (weaponType == null) return false;
+
+        System.out.println("Player: Adding weapon " + weaponType.displayName + " with " + startingAmmo + " ammo");
+
+        // Add weapon to inventory
+        boolean wasNew = weaponInventory.addWeapon(weaponType);
+
+        // Set starting ammo for the weapon
+        ammoInventory.setLoadedAmmo(weaponType, startingAmmo);
+
+        if (wasNew) {
+            System.out.println("Player: New weapon acquired - " + weaponType.displayName);
+
+            // CRITICAL FIX: If this is player's first weapon, initialize weapon systems
+            if (weaponInventory.getOwnedWeaponCount() == 1 && !weaponSystemsInitialized) {
+                System.out.println("Player: First weapon detected - initializing weapon systems...");
+                initializeWeaponSystems(weaponType);
+            } else {
+                // Update weapon animator for new weapon
+                updateWeaponAnimatorForCurrentWeapon();
+            }
+        }
+
+        return wasNew;
+    }
+
+    /**
+     * NEW: Add ammo to player inventory
+     */
+    public void addAmmo(AmmoType ammoType, int amount) {
+        if (ammoType != null && amount > 0) {
+            ammoInventory.addReserveAmmo(ammoType, amount);
+            System.out.println("Player gained: " + amount + " " + ammoType.displayName);
+        }
+    }
+
+    /**
+     * NEW: Switch to weapon by number key
+     */
+    public boolean switchWeapon(int keyNumber) {
+        WeaponType newWeapon = weaponInventory.switchByKey(keyNumber);
+        return updateWeaponAnimatorForCurrentWeapon();
+    }
+
+    /**
+     * NEW: Switch to next weapon (mouse wheel up)
+     */
+    public boolean switchToNextWeapon() {
+        WeaponType newWeapon = weaponInventory.switchToNextWeapon();
+        return updateWeaponAnimatorForCurrentWeapon();
+    }
+
+    /**
+     * NEW: Switch to previous weapon (mouse wheel down)
+     */
+    public boolean switchToPreviousWeapon() {
+        WeaponType newWeapon = weaponInventory.switchToPreviousWeapon();
+        return updateWeaponAnimatorForCurrentWeapon();
+    }
+
+    /**
+     * NEW: Quick switch to last weapon
+     */
+    public boolean quickSwitchWeapon() {
+        WeaponType newWeapon = weaponInventory.quickSwitch();
+        return updateWeaponAnimatorForCurrentWeapon();
+    }
+
+    /**
+     * CRITICAL FIX: Update weapon animator when weapon changes
+     */
+    private boolean updateWeaponAnimatorForCurrentWeapon() {
+        WeaponType currentWeapon = weaponInventory.getCurrentWeapon();
+
+        if (currentWeapon == null) {
+            // No weapon - hide animator
+            if (weaponAnimator != null) {
+                weaponAnimator.setProceduralMotion(false);
+            }
+            return false;
+        }
+
+        // Update weapon animator for new weapon
+        if (weaponAnimator != null) {
+            System.out.println("Player: Loading frames for " + currentWeapon.displayName);
+            System.out.println("Frame path: " + currentWeapon.frameBasePath);
+            System.out.println("Frame count: " + currentWeapon.frameCount);
+
+            // Pass weapon type for weapon-specific animations and file naming
+            weaponAnimator.loadFrames(currentWeapon.frameBasePath, currentWeapon.frameCount, currentWeapon);
+            weaponAnimator.setProceduralMotion(true);
+
+            System.out.println("Player: Weapon animator updated for " + currentWeapon.displayName);
+        } else {
+            System.err.println("Player: Cannot update weapon animator - animator is null!");
+        }
+
+        // Update weapon effects manager with current weapon type
+        if (weaponEffectsManager != null) {
+            weaponEffectsManager.setCurrentHorrorWeapon(currentWeapon);
+        }
+
+        return true;
+    }
+
+    /**
+     * CRITICAL FIX: Initialize weapon systems when player gets first weapon
+     */
+    private void initializeWeaponSystems(WeaponType firstWeapon) {
+        if (gameInstance == null) {
+            System.err.println("Player: CRITICAL ERROR - Cannot initialize weapon systems - no game instance reference!");
+            System.err.println("Player: Make sure HorrorGameJME calls player.setGameInstance(this) in setupPlayerSystemsWithoutWeapons()");
+            return;
+        }
+
+        if (weaponSystemsInitialized) {
+            System.out.println("Player: Weapon systems already initialized");
+            return;
+        }
+
+        System.out.println("Player: Calling game instance to initialize weapon systems for " + firstWeapon.displayName);
+
+        try {
+            gameInstance.initializePlayerWeaponSystems(firstWeapon);
+            weaponSystemsInitialized = true;
+            System.out.println("Player: Weapon systems initialization complete!");
+
+            // Update weapon animator for current weapon
+            updateWeaponAnimatorForCurrentWeapon();
+
+        } catch (Exception e) {
+            System.err.println("Player: CRITICAL ERROR - Failed to initialize weapon systems: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * UPDATED: Fire weapon with new inventory system
      */
     public void fireWeapon() {
+        WeaponType currentWeapon = weaponInventory.getCurrentWeapon();
+
+        // Check if we have a weapon
+        if (currentWeapon == null) {
+            System.out.println("Player: Cannot fire - no weapon equipped");
+            return;
+        }
+
+        // Check if weapon systems are initialized
+        if (!weaponSystemsInitialized) {
+            System.err.println("Player: Cannot fire - weapon systems not initialized!");
+            return;
+        }
+
         // Check fire rate limit
         if (lastFireTime < fireRate) {
             return;
         }
 
-        // Check if we have ammo and not reloading
-        if (currentAmmo <= 0) {
+        // Check if we have ammo
+        if (!ammoInventory.canFire(currentWeapon)) {
             // Play empty click sound
             if (audioManager != null) {
-
+                audioManager.playSoundEffect("gun_empty");
             }
+            System.out.println("Player: Cannot fire - no ammo");
             return;
         }
 
         if (isReloading) {
+            System.out.println("Player: Cannot fire - reloading");
             return; // Can't fire while reloading
         }
 
@@ -232,7 +416,9 @@ public class Player implements Control {
         lastFireTime = 0f;
 
         // Consume ammo
-        currentAmmo--;
+        ammoInventory.consumeLoadedAmmo(currentWeapon);
+
+        System.out.println("Player: Firing " + currentWeapon.displayName + " - Ammo remaining: " + ammoInventory.getLoadedAmmo(currentWeapon));
 
         // 1. Trigger weapon animation
         if (weaponAnimator != null) {
@@ -244,7 +430,7 @@ public class Player implements Control {
             audioManager.playSoundEffect("gun_fire");
         }
 
-        // 3. NEW: Trigger 3D muzzle flash
+        // 3. Trigger 3D muzzle flash
         if (muzzleFlashSystem != null) {
             muzzleFlashSystem.createMuzzleFlash();
         }
@@ -253,23 +439,49 @@ public class Player implements Control {
         if (weaponEffectsManager != null) {
             weaponEffectsManager.fireWeapon();
         }
-
-
     }
 
     /**
-     * ENHANCED: Reload with ammo tracking
+     * UPDATED: Reload with new ammo system
      */
     public void reload() {
-        // Can't reload if already reloading, already full, or no animator
-        if (isReloading || currentAmmo >= maxAmmo || weaponAnimator == null) {
+        WeaponType currentWeapon = weaponInventory.getCurrentWeapon();
+
+        // Check if we have a weapon
+        if (currentWeapon == null) {
+            System.out.println("Player: Cannot reload - no weapon equipped");
+            return;
+        }
+
+        // Check if weapon systems are initialized
+        if (!weaponSystemsInitialized) {
+            System.err.println("Player: Cannot reload - weapon systems not initialized!");
+            return;
+        }
+
+        // Can't reload if already reloading, or no animator
+        if (isReloading || weaponAnimator == null) {
+            System.out.println("Player: Cannot reload - already reloading or no animator");
+            return;
+        }
+
+        // Check if we can reload
+        if (!ammoInventory.canReload(currentWeapon)) {
+            // Play "no ammo" sound
+            if (audioManager != null) {
+                audioManager.playSoundEffect("gun_no_ammo");
+            }
+            System.out.println("Player: Cannot reload - no reserve ammo or magazine full");
             return;
         }
 
         // Can't reload if weapon is still animating from firing
         if (weaponAnimator.isAnimating()) {
+            System.out.println("Player: Cannot reload - weapon still animating");
             return;
         }
+
+        System.out.println("Player: Starting reload for " + currentWeapon.displayName);
 
         // Start reload
         isReloading = true;
@@ -278,26 +490,28 @@ public class Player implements Control {
         if (audioManager != null) {
             audioManager.playSoundEffect("gun_reload");
         }
-
     }
 
     /**
      * Finish reload process
      */
     private void finishReload() {
-        isReloading = false;
-        currentAmmo = maxAmmo;
+        WeaponType currentWeapon = weaponInventory.getCurrentWeapon();
 
+        if (currentWeapon != null) {
+            int ammoReloaded = ammoInventory.reload(currentWeapon);
+            System.out.println("Player: Reloaded " + ammoReloaded + " rounds into " + currentWeapon.displayName);
+        }
+
+        isReloading = false;
     }
 
     public void toggleTorch() {
         torchOn = !torchOn;
         if (torchOn) {
             rootNode.addLight(torch);
-
         } else {
             rootNode.removeLight(torch);
-
         }
 
         if (audioManager != null) {
@@ -337,10 +551,6 @@ public class Player implements Control {
         return isMoving && onGround;
     }
 
-    private boolean isMoving() {
-        return moveForward || moveBackward || strafeLeft || strafeRight;
-    }
-
     public void setPositionOnly(Vector3f physicsPosition) {
         this.position.set(physicsPosition);
     }
@@ -362,10 +572,9 @@ public class Player implements Control {
     // Configuration for mouse sway behavior
     public void setMouseDeltaDecay(float decay) {
         this.mouseDeltaDecay = Math.max(0.5f, Math.min(0.99f, decay));
-
     }
 
-    // Getters and setters
+    // UPDATED: Getters using new inventory system
     public Vector3f getPosition() { return position.clone(); }
     public boolean isTorchOn() { return torchOn; }
     public float getHealth() { return health; }
@@ -373,19 +582,55 @@ public class Player implements Control {
     public boolean isDead() { return isDead; }
     public ModernWeaponAnimator getWeaponAnimator() { return weaponAnimator; }
 
-    // UPDATED: Weapon state getters
-    public int getCurrentAmmo() { return currentAmmo; }
-    public int getMaxAmmo() { return maxAmmo; }
+    // NEW: Inventory-based getters
+    public boolean hasAnyWeapon() {
+        return weaponInventory.hasAnyWeapon();
+    }
+
+    public WeaponType getCurrentWeapon() {
+        return weaponInventory.getCurrentWeapon();
+    }
+
+    public String getCurrentWeaponName() {
+        return weaponInventory.getCurrentWeaponName();
+    }
+
+    public int getCurrentAmmo() {
+        WeaponType current = weaponInventory.getCurrentWeapon();
+        return current != null ? ammoInventory.getLoadedAmmo(current) : 0;
+    }
+
+    public int getMaxAmmo() {
+        WeaponType current = weaponInventory.getCurrentWeapon();
+        return current != null ? current.magazineSize : 0;
+    }
+
+    public int getReserveAmmo() {
+        WeaponType current = weaponInventory.getCurrentWeapon();
+        return current != null ? ammoInventory.getReserveAmmo(current.ammoType) : 0;
+    }
+
+    public String getAmmoStatusString() {
+        WeaponType current = weaponInventory.getCurrentWeapon();
+        return current != null ? ammoInventory.getAmmoStatusForWeapon(current) : "NO WEAPON";
+    }
+
     public boolean isReloading() { return isReloading; }
     public WeaponEffectsManager getWeaponEffectsManager() { return weaponEffectsManager; }
-    public ModelBasedMuzzleFlash getMuzzleFlashSystem() { return muzzleFlashSystem; } // NEW
+    public ModelBasedMuzzleFlash getMuzzleFlashSystem() { return muzzleFlashSystem; }
+
+    // NEW: Inventory access for debugging
+    public WeaponInventory getWeaponInventory() { return weaponInventory; }
+    public AmmoInventory getAmmoInventory() { return ammoInventory; }
+
+    // CRITICAL: Check if weapon systems are initialized
+    public boolean areWeaponSystemsInitialized() { return weaponSystemsInitialized; }
 
     public void takeDamage(float damage) {
         health -= damage;
         if (health <= 0) {
             health = 0;
             isDead = true;
-
         }
     }
 
@@ -405,22 +650,25 @@ public class Player implements Control {
     public String getWeaponSystemsStatus() {
         StringBuilder status = new StringBuilder();
         status.append("=== Player Weapon Systems Status ===\n");
+        status.append("Has Any Weapon: ").append(hasAnyWeapon()).append("\n");
+        status.append("Current Weapon: ").append(getCurrentWeaponName()).append("\n");
+        status.append("Weapon Count: ").append(weaponInventory.getOwnedWeaponCount()).append("\n");
+        status.append("Ammo Status: ").append(getAmmoStatusString()).append("\n");
+        status.append("Systems Initialized: ").append(weaponSystemsInitialized).append("\n");
         status.append("Weapon Animator: ").append(weaponAnimator != null ? "Connected" : "Missing").append("\n");
         status.append("Weapon Effects: ").append(weaponEffectsManager != null ? "Connected" : "Missing").append("\n");
         status.append("Muzzle Flash 3D: ").append(muzzleFlashSystem != null ? "Connected" : "Missing").append("\n");
         status.append("Audio Manager: ").append(audioManager != null ? "Connected" : "Missing").append("\n");
-        status.append("Current Ammo: ").append(currentAmmo).append("/").append(maxAmmo).append("\n");
+        status.append("Game Instance: ").append(gameInstance != null ? "Connected" : "Missing").append("\n");
         status.append("Reloading: ").append(isReloading ? "Yes" : "No").append("\n");
         return status.toString();
     }
 
     @Override
     public void write(JmeExporter ex) throws IOException {
-
     }
 
     @Override
     public void read(JmeImporter im) throws IOException {
-
     }
 }
