@@ -37,7 +37,7 @@ public class SpriteAnimator {
     private boolean isPlaying = false;
 
     // Quad sizing
-    private float pixelToWorldScale = 0.01f;
+    private float pixelToWorldScale = 0.05f;
     private Vector2f currentQuadSize;
     private boolean manualSizeOverride = false;
     private Vector2f manualSize;

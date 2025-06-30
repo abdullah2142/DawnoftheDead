@@ -687,6 +687,30 @@ public class ModernWeaponAnimator {
         }
     }
 
+    /**
+     * NEW: Hide the weapon model (when player is dead)
+     */
+    public void hideWeapon() {
+        if (currentFramePicture != null) {
+            currentFramePicture.setCullHint(com.jme3.scene.Spatial.CullHint.Always);
+        }
+        if (nextFramePicture != null) {
+            nextFramePicture.setCullHint(com.jme3.scene.Spatial.CullHint.Always);
+        }
+    }
+
+    /**
+     * NEW: Show the weapon model (when player is alive)
+     */
+    public void showWeapon() {
+        if (currentFramePicture != null) {
+            currentFramePicture.setCullHint(com.jme3.scene.Spatial.CullHint.Dynamic);
+        }
+        if (nextFramePicture != null) {
+            nextFramePicture.setCullHint(com.jme3.scene.Spatial.CullHint.Dynamic);
+        }
+    }
+
     // ENHANCED: Mouse sway configuration methods
     public void setMouseSwayIntensity(float intensity) {
         this.mouseSwayIntensity = Math.max(0f, intensity); // Remove upper clamp

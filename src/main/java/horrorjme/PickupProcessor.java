@@ -104,14 +104,10 @@ public class PickupProcessor {
     private void showPickupNotification(PickupEntity pickup) {
         if (pickup instanceof WeaponPickup) {
             WeaponPickup weaponPickup = (WeaponPickup) pickup;
-            hudManager.onWeaponPickup(weaponPickup.getWeaponType().displayName,
-                    weaponPickup.getStartingAmmo());
             hudManager.showTemporaryMessage("Purchased: " + weaponPickup.getWeaponType().displayName +
                     " (-" + ScoreSystem.getWeaponCost() + " points)", 2f, new ColorRGBA(0f, 1f, 0f, 1f));
         } else if (pickup instanceof AmmoPickup) {
             AmmoPickup ammoPickup = (AmmoPickup) pickup;
-            hudManager.onAmmoPickup(ammoPickup.getAmmoType().displayName,
-                    ammoPickup.getAmmoAmount());
             hudManager.showTemporaryMessage("Purchased: " + ammoPickup.getAmmoType().displayName +
                     " (-" + ScoreSystem.getAmmoCost() + " points)", 1.5f, new ColorRGBA(1f, 1f, 0f, 1f));
         } else if (pickup instanceof HealthPickup) {

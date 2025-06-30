@@ -1,6 +1,8 @@
 package horrorjme;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.bullet.BulletAppState;
+import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
@@ -14,8 +16,10 @@ public class SimpleEnemy extends Entity {
 
     private AssetManager assetManager;
     private Vector3f playerPosition;
+    private Player player;
+    private AudioManager audioManager;
     private float speed = 1.5f;
-    private float detectionRange = 5f;
+    private float detectionRange = 1000f;
     private float attackRange = 1f;
     private float attackDamage = 10f;
     private float lastAttackTime = 0f;
@@ -34,6 +38,18 @@ public class SimpleEnemy extends Entity {
     public SimpleEnemy(Vector3f position, AssetManager assetManager) {
         super(EntityType.ENEMY, position);
         this.assetManager = assetManager;
+        this.health = 50f;
+        this.maxHealth = 50f;
+        this.boundingRadius = 0.5f;
+    }
+
+    /**
+     * NEW: Constructor with AudioManager for sound effects
+     */
+    public SimpleEnemy(Vector3f position, AssetManager assetManager, AudioManager audioManager) {
+        super(EntityType.ENEMY, position);
+        this.assetManager = assetManager;
+        this.audioManager = audioManager;
         this.health = 50f;
         this.maxHealth = 50f;
         this.boundingRadius = 0.5f;
@@ -71,21 +87,15 @@ public class SimpleEnemy extends Entity {
 
         switch (currentState) {
             case IDLE:
-                if (distanceToPlayer <= detectionRange) {
-                    currentState = EnemyState.CHASING;
-
-                }
+                // CHANGED: Always transition to chasing if player position is known
+                currentState = EnemyState.CHASING;
                 break;
 
             case CHASING:
                 if (distanceToPlayer <= attackRange) {
                     currentState = EnemyState.ATTACKING;
-                } else if (distanceToPlayer > detectionRange * 1.5f) {
-                    // Lost player
-                    currentState = EnemyState.IDLE;
-                    velocity.set(0, 0, 0);
                 } else {
-                    // Move towards player
+                    // CHANGED: Always move towards player, never lose track
                     Vector3f direction = playerPosition.subtract(position).normalizeLocal();
                     velocity.set(direction.mult(speed));
                 }
@@ -111,9 +121,21 @@ public class SimpleEnemy extends Entity {
     }
 
     private void attack() {
+        // NEW: Play zombie attack sound
+        if (audioManager != null) {
+            audioManager.playSoundEffect("zombie_attack");
+        }
 
-        // In a real game, you'd apply damage to the player here
-        // For now, just print the attack
+        // Deal damage to player if in range
+        if (player != null && playerPosition != null) {
+            float distanceToPlayer = position.distance(playerPosition);
+            if (distanceToPlayer <= attackRange) {
+                // NEW: Randomize damage between 10 and 15
+                float randomDamage = 10f + (float)(Math.random() * 5f); // 10 to 15 damage
+                player.takeDamage(randomDamage);
+                System.out.println("SimpleEnemy " + entityId + " attacked player for " + String.format("%.1f", randomDamage) + " damage! Player health: " + player.getHealth());
+            }
+        }
     }
 
     @Override
@@ -152,10 +174,34 @@ public class SimpleEnemy extends Entity {
     }
 
     /**
+     * Set player reference for damage dealing
+     */
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    /**
+     * Set audio manager reference for sound effects
+     */
+    public void setAudioManager(AudioManager audioManager) {
+        this.audioManager = audioManager;
+    }
+
+    /**
      * Take damage and change color to indicate hurt
      */
     @Override
     public void takeDamage(float damage) {
+        // Check if this damage would kill the enemy
+        boolean willDie = (health - damage) <= 0;
+
+        if (willDie) {
+            // NEW: Play zombie death sound
+            if (audioManager != null) {
+                audioManager.playSoundEffect("zombie_death");
+            }
+        }
+
         super.takeDamage(damage);
 
         // Flash red when taking damage

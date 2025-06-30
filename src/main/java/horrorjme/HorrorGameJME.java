@@ -51,6 +51,7 @@ public class HorrorGameJME extends SimpleApplication {
     private Player player;
     private HUDManager hudManager;
     private SkyboxManager skyboxManager;
+    private MapManager mapManager;
 
     // NEW: Timer and Score systems
     private TimerSystem timerSystem;
@@ -81,6 +82,11 @@ public class HorrorGameJME extends SimpleApplication {
     private static final float MAP_SCALE = 1.50f;
     private static final Vector3f PLAYER_START_POS = new Vector3f(10f, 0f, 20f);
     private static final float MOUSE_SENSITIVITY = 0.5f;
+
+    // Add fields for inter-round delay
+    private boolean interRoundDelayActive = false;
+    private float interRoundDelayTimer = 0f;
+    private static final float INTER_ROUND_DELAY = 15f;
 
     @Override
     public void simpleInitApp() {
@@ -156,6 +162,7 @@ public class HorrorGameJME extends SimpleApplication {
     private void initializeManagers() {
         System.out.println("Initializing managers...");
 
+
         gameStateManager = new GameStateManager();
         optionsManager = new OptionsManager();
         audioManager = new AudioManager(assetManager, rootNode);
@@ -164,7 +171,8 @@ public class HorrorGameJME extends SimpleApplication {
         debugNoclip = new DebugNoclipControl(cam, inputManager);
         skyboxManager = new SkyboxManager(assetManager, rootNode);
         zombieSpawner = new ZombieSpawner(assetManager, cam, bulletAppState, entityManager);
-
+        zombieSpawner.setAudioManager(audioManager);
+        mapManager = new MapManager();
         // NEW: Initialize timer and score systems
         timerSystem = new TimerSystem();
         scoreSystem = new ScoreSystem();
@@ -187,7 +195,9 @@ public class HorrorGameJME extends SimpleApplication {
         cam.setFrustumPerspective(75f, (float)cam.getWidth() / cam.getHeight(), 0.1f, 500f);
         flyCam.setEnabled(false);
         inputHandler = new InputHandler(inputManager, gameStateManager, this);
-        menuSystem = new MenuSystem(assetManager, guiNode, settings, gameStateManager, this, optionsManager);
+        // Inside setupCameraAndInput()
+// menuSystem = new MenuSystem(assetManager, guiNode, settings, gameStateManager, this, optionsManager); // OLD
+        menuSystem = new MenuSystem(assetManager, guiNode, settings, gameStateManager, this, optionsManager, mapManager); // NEW
         inputHandler.setMenuSystem(menuSystem);
         System.out.println("Camera and input setup complete");
     }
@@ -203,7 +213,12 @@ public class HorrorGameJME extends SimpleApplication {
         gameStateManager.setState(GameStateManager.GameState.PLAYING);
         menuSystem.hide();
 
-        loadDoomMap();
+        // NEW: Reset HUD for new game
+        if (hudManager != null) {
+            hudManager.reset();
+        }
+
+        loadSelectedMap();
         setupPostProcessing();
         createSmoothPhysicsPlayer();
         setupPlayerSystemsWithoutWeapons();
@@ -213,17 +228,18 @@ public class HorrorGameJME extends SimpleApplication {
         System.out.println("=== GAME START COMPLETE ===");
     }
 
-    private void loadDoomMap() {
-        System.out.println("Loading DOOM map...");
+    private void loadSelectedMap() {
+        MapInfo mapToLoad = mapManager.getCurrentMap();
+        System.out.println("Loading map: " + mapToLoad.getDisplayName() + " from " + mapToLoad.getModelPath());
 
         try {
-            doomMap = assetManager.loadModel("Models/scene.gltf");
+            doomMap = assetManager.loadModel(mapToLoad.getModelPath());
             if (doomMap == null) {
-                throw new RuntimeException("DOOM map file not found");
+                throw new RuntimeException("Map file not found: " + mapToLoad.getModelPath());
             }
 
             doomMap.scale(MAP_SCALE);
-            applyDoomMapMaterials();
+            // applyDoomMapMaterials(); // Keep this helper method if it exists
 
             CollisionShape mapCollisionShape = CollisionShapeFactory.createMeshShape(doomMap);
             landscapeControl = new RigidBodyControl(mapCollisionShape, 0);
@@ -232,11 +248,11 @@ public class HorrorGameJME extends SimpleApplication {
             rootNode.attachChild(doomMap);
             bulletAppState.getPhysicsSpace().add(landscapeControl);
 
-            System.out.println("DOOM map loaded successfully");
+            System.out.println(mapToLoad.getDisplayName() + " loaded successfully.");
         } catch (Exception e) {
-            System.err.println("Failed to load DOOM map: " + e.getMessage());
+            System.err.println("Failed to load map: " + mapToLoad.getDisplayName());
             e.printStackTrace();
-            createMinimalFallbackMap();
+            // createMinimalFallbackMap(); // Keep your fallback logic
         }
     }
 
@@ -323,6 +339,9 @@ public class HorrorGameJME extends SimpleApplication {
     private void createSmoothPhysicsPlayer() {
         System.out.println("Creating physics player...");
 
+        MapInfo currentMap = mapManager.getCurrentMap();
+        Vector3f startPos = currentMap.getStartPosition().mult(MAP_SCALE);
+
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(0.45f, 0.3f, 1);
         playerControl = new CharacterControl(capsuleShape, 0.31f);
 
@@ -330,7 +349,7 @@ public class HorrorGameJME extends SimpleApplication {
         playerControl.setFallSpeed(25);
         playerControl.setGravity(65);
 
-        Vector3f startPos = PLAYER_START_POS.mult(MAP_SCALE);
+        //Vector3f startPos = PLAYER_START_POS.mult(MAP_SCALE);
         playerControl.setPhysicsLocation(startPos);
 
         bulletAppState.getPhysicsSpace().add(playerControl);
@@ -340,8 +359,20 @@ public class HorrorGameJME extends SimpleApplication {
     private void setupPlayerSystemsWithoutWeapons() {
         System.out.println("Setting up player systems (without weapons)...");
 
-        player = new Player(cam, rootNode, null, audioManager);
+        // NEW: Reset existing player or create new one
+        if (player != null) {
+            player.reset();
+        } else {
+            player = new Player(cam, rootNode, null, audioManager);
+        }
+        
         player.setGameInstance(this);
+
+        // Set player reference in ZombieSpawner for damage dealing
+        zombieSpawner.setPlayer(player);
+        
+        // NEW: Set HUD manager reference in player for damage effects
+        player.setHUDManager(hudManager);
 
         inputHandler.setPlayer(player);
         inputHandler.setPlayerControl(playerControl);
@@ -528,48 +559,70 @@ public class HorrorGameJME extends SimpleApplication {
 
     private void cleanupGame() {
         System.out.println("Cleaning up game...");
-
+    
+        // FIXED: Clean up player weapon systems BEFORE setting player to null
+        if (player != null && player.areWeaponSystemsInitialized()) {
+            System.out.println("Cleaning up player weapon systems...");
+            
+            // Clean up weapon animator (removes weapon sprites from GUI)
+            if (player.getWeaponAnimator() != null) {
+                player.getWeaponAnimator().cleanup();
+            }
+            
+            // Clean up weapon effects manager (removes crosshair, etc.)
+            if (player.getWeaponEffectsManager() != null) {
+                player.getWeaponEffectsManager().cleanup();
+            }
+            
+            // Clean up muzzle flash system
+            if (player.getMuzzleFlashSystem() != null) {
+                player.getMuzzleFlashSystem().cleanup();
+            }
+            
+            System.out.println("Player weapon systems cleaned up");
+        }
+    
         if (postProcessor != null) {
             viewPort.removeProcessor(postProcessor);
             postProcessor = null;
         }
-
+    
         if (playerControl != null) {
             bulletAppState.getPhysicsSpace().remove(playerControl);
             playerControl = null;
         }
-
+    
         if (landscapeControl != null) {
             bulletAppState.getPhysicsSpace().remove(landscapeControl);
             landscapeControl = null;
         }
-
+    
         if (doomMap != null) {
             rootNode.detachChild(doomMap);
             doomMap = null;
         }
-
+    
         player = null;
         inputHandler.setPlayer(null);
-
+    
         if (entityManager != null) {
             entityManager.clear();
         }
-
+    
         // NEW: Reset timer and score systems
         if (timerSystem != null) {
             timerSystem.reset();
         }
-
+    
         if (scoreSystem != null) {
             scoreSystem.reset();
         }
-
+    
         if (pickupSpawner != null) {
             pickupSpawner.clearSpawnPoints();
         }
         pickupProcessor = null;
-
+    
         System.out.println("Game cleanup complete");
     }
 
@@ -607,9 +660,27 @@ public class HorrorGameJME extends SimpleApplication {
 
             // NEW: Update timer system and handle events
             if (timerSystem != null) {
-                timerSystem.update(tpf);
-                handleRoundEvents();
-                handleContinuousSpawning();
+                // If inter-round delay is active, update the timer and HUD
+                if (interRoundDelayActive) {
+                    interRoundDelayTimer -= tpf;
+                    if (hudManager != null) {
+                        int secondsLeft = Math.max(0, (int)Math.ceil(interRoundDelayTimer));
+                        hudManager.showTemporaryMessage("Next round in: " + secondsLeft + "...", 0.5f, ColorRGBA.Cyan);
+                    }
+                    if (interRoundDelayTimer <= 0f) {
+                        interRoundDelayActive = false;
+                        timerSystem.startNextRound();
+                        scoreSystem.startNewRound();
+                        if (hudManager != null) {
+                            hudManager.showRoundStart(timerSystem.getCurrentRound(), timerSystem.getRoundDuration());
+                        }
+                        spawnZombiesWithDrops();
+                    }
+                } else {
+                    timerSystem.update(tpf);
+                    handleRoundEvents();
+                    handleContinuousSpawning();
+                }
             }
         }
     }
@@ -634,8 +705,6 @@ public class HorrorGameJME extends SimpleApplication {
         }
     }
 
-
-
     private void handleRoundEvents() {
         if (timerSystem.isRoundCompleted()) {
             int bonusPoints = 50;
@@ -647,6 +716,10 @@ public class HorrorGameJME extends SimpleApplication {
             }
 
             System.out.println("=== ROUND " + timerSystem.getCurrentRound() + " COMPLETE ===");
+
+            // Start inter-round delay
+            interRoundDelayActive = true;
+            interRoundDelayTimer = INTER_ROUND_DELAY;
         }
 
         if (player != null && player.isDead() && timerSystem.getCurrentPhase() != TimerSystem.GamePhase.GAME_OVER) {
@@ -678,6 +751,11 @@ public class HorrorGameJME extends SimpleApplication {
             if (entity instanceof ZombieEnemy) {
                 ZombieEnemy zombie = (ZombieEnemy) entity;
                 zombie.setPlayerPosition(player.getPosition());
+                zombie.setPlayer(player);
+            } else if (entity instanceof SimpleEnemy) {
+                SimpleEnemy enemy = (SimpleEnemy) entity;
+                enemy.setPlayerPosition(player.getPosition());
+                enemy.setPlayer(player);
             }
         }
     }
@@ -713,4 +791,11 @@ public class HorrorGameJME extends SimpleApplication {
     public PickupProcessor getPickupProcessor() { return pickupProcessor; }
     public AudioManager getAudioManager() { return audioManager; }
     public GameStateManager getGameStateManager() { return gameStateManager; }
+
+    /**
+     * Get zombie type statistics for debugging
+     */
+    public String getZombieTypeStatistics() {
+        return zombieSpawner != null ? zombieSpawner.getZombieTypeStatistics() : "ZombieSpawner not available";
+    }
 }

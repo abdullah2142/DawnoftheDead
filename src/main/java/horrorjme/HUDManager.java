@@ -36,6 +36,23 @@ public class HUDManager {
     private BitmapText killsText;         // Shows kills this round / total kills
     private BitmapText phaseText;         // Shows current game phase
 
+    // NEW: Stamina bar elements
+    private com.jme3.scene.shape.Quad staminaBarBackground;
+    private com.jme3.scene.shape.Quad staminaBarFill;
+    private com.jme3.scene.Geometry staminaBarBackgroundGeom;
+    private com.jme3.scene.Geometry staminaBarFillGeom;
+    private com.jme3.material.Material staminaBarBackgroundMat;
+    private com.jme3.material.Material staminaBarFillMat;
+    private BitmapText staminaText;
+
+    // NEW: Damage screen effect
+    private com.jme3.scene.shape.Quad damageOverlay;
+    private com.jme3.scene.Geometry damageOverlayGeometry;
+    private com.jme3.material.Material damageOverlayMaterial;
+    private float damageEffectTimer = 0f;
+    private float damageEffectDuration = 0.3f; // How long the red effect lasts
+    private boolean damageEffectActive = false;
+
     private BitmapFont defaultFont;
     private Node hudNode;
 
@@ -44,6 +61,9 @@ public class HUDManager {
 
     // State
     private boolean showDebugInfo = false;
+
+    // NEW: Game over elements
+    private List<com.jme3.scene.Spatial> gameOverElements = new ArrayList<>();
 
     /**
      * Temporary message data class
@@ -161,6 +181,12 @@ public class HUDManager {
             hudNode.attachChild(debugText);
         }
 
+        // NEW: Initialize damage overlay
+        initializeDamageOverlay();
+
+        // NEW: Initialize stamina bar
+        initializeStaminaBar();
+
         guiNode.attachChild(hudNode);
     }
 
@@ -175,6 +201,7 @@ public class HUDManager {
             updateAmmoDisplay(player);
             updateReloadStatus(player);
             updateNoWeaponIndicator(player);
+            updateStaminaDisplay(player);
 
             if (showDebugInfo) {
                 updateDebugInfo(player);
@@ -183,6 +210,9 @@ public class HUDManager {
 
         // Update temporary messages with proper time delta
         updateTemporaryMessages(tpf);
+        
+        // NEW: Update damage effect
+        updateDamageEffect(tpf);
     }
 
     /**
@@ -299,12 +329,45 @@ public class HUDManager {
     }
 
     /**
-     * NEW: Show game over message
+     * NEW: Show game over message with black background
      */
     public void showGameOver(int finalRound, float survivalTime, int totalKills) {
+        // Create black background overlay
+        com.jme3.scene.shape.Quad gameOverBackground = new com.jme3.scene.shape.Quad(settings.getWidth(), settings.getHeight());
+        com.jme3.scene.Geometry gameOverBackgroundGeom = new com.jme3.scene.Geometry("GameOverBackground", gameOverBackground);
+        com.jme3.material.Material gameOverBackgroundMat = new com.jme3.material.Material(assetManager, "Common/MatDefs/Gui/Gui.j3md");
+        gameOverBackgroundMat.setColor("Color", new ColorRGBA(0f, 0f, 0f, 0.9f)); // Black with 90% opacity
+        gameOverBackgroundMat.getAdditionalRenderState().setBlendMode(com.jme3.material.RenderState.BlendMode.Alpha);
+        gameOverBackgroundMat.setTransparent(true);
+        gameOverBackgroundGeom.setMaterial(gameOverBackgroundMat);
+        gameOverBackgroundGeom.setLocalTranslation(0, 0, 0);
+        
+        // Add background to HUD
+        hudNode.attachChild(gameOverBackgroundGeom);
+        
+        // Create game over text
         String message = String.format("GAME OVER\nReached Round %d\nSurvived %.1f seconds\nTotal Kills: %d",
                 finalRound, survivalTime, totalKills);
-        showTemporaryMessage(message, 5f, ColorRGBA.Red);
+        
+        // Create larger, more prominent game over text
+        BitmapText gameOverText = new BitmapText(defaultFont);
+        gameOverText.setSize(defaultFont.getCharSet().getRenderedSize() * 2.5f);
+        gameOverText.setText(message);
+        gameOverText.setColor(ColorRGBA.Red);
+        gameOverText.setLocalTranslation(
+                settings.getWidth() / 2 - gameOverText.getLineWidth() / 2,
+                settings.getHeight() / 2 + 50,
+                0
+        );
+        
+        // Add text to HUD
+        hudNode.attachChild(gameOverText);
+        
+        // Store references for cleanup later
+        gameOverElements.add(gameOverBackgroundGeom);
+        gameOverElements.add(gameOverText);
+        
+        System.out.println("HUD: Game over screen displayed with black background");
     }
 
     /**
@@ -522,9 +585,24 @@ public class HUDManager {
     }
 
     public void show() {
-        if (hudNode.getParent() != null) {
+        if (hudNode.getParent() == null) {
             guiNode.attachChild(hudNode);
         }
+    }
+
+    public void reset() {
+        System.out.println("HUD: Resetting for new game...");
+        
+        // Clean up any existing elements
+        cleanup();
+        
+        // Reinitialize all HUD elements
+        initialize();
+        
+        // Show the HUD
+        show();
+        
+        System.out.println("HUD: Reset complete");
     }
 
     public void cleanup() {
@@ -540,9 +618,132 @@ public class HUDManager {
             guiNode.detachChild(hudNode);
         }
         hudNode.detachAllChildren();
+
+        // Clean up game over elements
+        for (com.jme3.scene.Spatial geom : gameOverElements) {
+            if (geom.getParent() != null) {
+                hudNode.detachChild(geom);
+            }
+        }
+        gameOverElements.clear();
     }
 
     public boolean isDebugInfoVisible() {
         return showDebugInfo;
+    }
+
+    private void initializeDamageOverlay() {
+        // Create a full-screen quad for the damage overlay
+        damageOverlay = new com.jme3.scene.shape.Quad(settings.getWidth(), settings.getHeight());
+        damageOverlayGeometry = new com.jme3.scene.Geometry("DamageOverlay", damageOverlay);
+        
+        // Create material for the damage overlay
+        damageOverlayMaterial = new com.jme3.material.Material(assetManager, "Common/MatDefs/Gui/Gui.j3md");
+        damageOverlayMaterial.setColor("Color", new ColorRGBA(1f, 0f, 0f, 0f)); // Start transparent
+        damageOverlayMaterial.getAdditionalRenderState().setBlendMode(com.jme3.material.RenderState.BlendMode.Alpha);
+        damageOverlayMaterial.setTransparent(true);
+        
+        damageOverlayGeometry.setMaterial(damageOverlayMaterial);
+        
+        // Position the overlay to cover the entire screen
+        damageOverlayGeometry.setLocalTranslation(0, 0, 0);
+        
+        // Add to HUD node (but start hidden)
+        hudNode.attachChild(damageOverlayGeometry);
+        
+        // Start with effect inactive
+        damageEffectActive = false;
+        damageEffectTimer = 0f;
+    }
+
+    /**
+     * NEW: Trigger the red screen damage effect
+     */
+    public void triggerDamageEffect() {
+        damageEffectActive = true;
+        damageEffectTimer = damageEffectDuration;
+        
+        // Set the overlay to full red opacity
+        damageOverlayMaterial.setColor("Color", new ColorRGBA(1f, 0f, 0f, 0.4f));
+        
+        System.out.println("HUD: Damage effect triggered");
+    }
+
+    /**
+     * NEW: Update the damage effect over time
+     */
+    private void updateDamageEffect(float tpf) {
+        if (!damageEffectActive) return;
+        
+        damageEffectTimer -= tpf;
+        
+        if (damageEffectTimer <= 0f) {
+            // Effect finished - fade to transparent
+            damageEffectActive = false;
+            damageOverlayMaterial.setColor("Color", new ColorRGBA(1f, 0f, 0f, 0f));
+        } else {
+            // Fade out the effect over time
+            float progress = damageEffectTimer / damageEffectDuration;
+            float alpha = 0.4f * progress; // Start at 0.4 alpha, fade to 0
+            damageOverlayMaterial.setColor("Color", new ColorRGBA(1f, 0f, 0f, alpha));
+        }
+    }
+
+    private void initializeStaminaBar() {
+        // Create stamina bar background
+        staminaBarBackground = new com.jme3.scene.shape.Quad(200, 20);
+        staminaBarBackgroundGeom = new com.jme3.scene.Geometry("StaminaBarBackground", staminaBarBackground);
+        staminaBarBackgroundMat = new com.jme3.material.Material(assetManager, "Common/MatDefs/Gui/Gui.j3md");
+        staminaBarBackgroundMat.setColor("Color", new ColorRGBA(0.2f, 0.2f, 0.2f, 0.8f));
+        staminaBarBackgroundGeom.setMaterial(staminaBarBackgroundMat);
+        staminaBarBackgroundGeom.setLocalTranslation(10, settings.getHeight() - 80, 0);
+
+        // Create stamina bar fill
+        staminaBarFill = new com.jme3.scene.shape.Quad(196, 16);
+        staminaBarFillGeom = new com.jme3.scene.Geometry("StaminaBarFill", staminaBarFill);
+        staminaBarFillMat = new com.jme3.material.Material(assetManager, "Common/MatDefs/Gui/Gui.j3md");
+        staminaBarFillMat.setColor("Color", new ColorRGBA(0.2f, 0.8f, 0.2f, 1.0f)); // Green
+        staminaBarFillGeom.setMaterial(staminaBarFillMat);
+        staminaBarFillGeom.setLocalTranslation(12, settings.getHeight() - 78, 0);
+
+        // Create stamina text
+        staminaText = new BitmapText(defaultFont, false);
+        staminaText.setSize(12);
+        staminaText.setColor(ColorRGBA.White);
+        staminaText.setText("STAMINA");
+        staminaText.setLocalTranslation(10, settings.getHeight() - 100, 0);
+
+        // Attach to HUD
+        hudNode.attachChild(staminaBarBackgroundGeom);
+        hudNode.attachChild(staminaBarFillGeom);
+        hudNode.attachChild(staminaText);
+    }
+
+    private void updateStaminaDisplay(Player player) {
+        if (player == null || staminaBarFillGeom == null) return;
+
+        float staminaPercentage = player.getStaminaPercentage();
+        float staminaValue = player.getStamina();
+        float maxStamina = player.getMaxStamina();
+
+        // Update stamina bar fill width based on percentage
+        float fillWidth = 196 * staminaPercentage;
+        staminaBarFill = new com.jme3.scene.shape.Quad(fillWidth, 16);
+        staminaBarFillGeom.setMesh(staminaBarFill);
+
+        // Update stamina bar color based on state
+        ColorRGBA barColor;
+        if (player.isExhausted()) {
+            barColor = new ColorRGBA(0.8f, 0.2f, 0.2f, 1.0f); // Red when exhausted
+        } else if (player.isSprinting()) {
+            barColor = new ColorRGBA(0.8f, 0.8f, 0.2f, 1.0f); // Yellow when sprinting
+        } else {
+            barColor = new ColorRGBA(0.2f, 0.8f, 0.2f, 1.0f); // Green when normal
+        }
+        staminaBarFillMat.setColor("Color", barColor);
+
+        // Update stamina text
+        String staminaInfo = String.format("STAMINA: %.0f/%.0f", staminaValue, maxStamina);
+        staminaText.setText(staminaInfo);
     }
 }

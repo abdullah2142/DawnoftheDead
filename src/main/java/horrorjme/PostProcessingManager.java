@@ -66,7 +66,7 @@ public class PostProcessingManager {
         // 1. ENHANCED FOG - More atmospheric
         fogFilter = new FogFilter();
         fogFilter.setFogColor(new ColorRGBA(0.05f, 0.05f, 0.08f, 1.0f)); // Dark blue-gray fog
-        fogFilter.setFogDensity(0.3f); // Reduced density for better visibility
+        fogFilter.setFogDensity(0.1f); // Reduced density for better visibility
         fogFilter.setFogDistance(80f); // Increased distance
         postProcessor.addFilter(fogFilter);
 
@@ -88,7 +88,7 @@ public class PostProcessingManager {
         dofFilter = new DepthOfFieldFilter();
         dofFilter.setFocusDistance(8f); // Closer focus
         dofFilter.setFocusRange(12f); // Wider range
-        dofFilter.setBlurScale(0.5f); // More blur
+        dofFilter.setBlurScale(0.3f); // More blur
         postProcessor.addFilter(dofFilter);
 
         // 4. ENHANCED BLOOM - For atmospheric lights
@@ -119,7 +119,7 @@ public class PostProcessingManager {
         if (lightingManager == null) return;
 
         // Use single optimized fog and bloom settings
-        fogFilter.setFogDensity(0.9f);
+        fogFilter.setFogDensity(0.4f);
         fogFilter.setFogColor(new ColorRGBA(0.05f, 0.05f, 0.08f, 1.0f));
         bloomFilter.setBloomIntensity(2.0f);
 

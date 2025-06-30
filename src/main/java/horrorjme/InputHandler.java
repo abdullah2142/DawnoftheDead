@@ -277,7 +277,13 @@ public class InputHandler implements ActionListener, AnalogListener {
                 }
                 break;
             case "Sprint":
-                isSprinting = isPressed;
+                if (player != null) {
+                    if (isPressed) {
+                        player.startSprint();
+                    } else {
+                        player.stopSprint();
+                    }
+                }
                 break;
             case "ToggleTorch":
                 if (!isPressed && player != null) {
@@ -389,7 +395,7 @@ public class InputHandler implements ActionListener, AnalogListener {
 
         // Apply speed
         float currentMoveSpeed = moveSpeed;
-        if (isSprinting) {
+        if (player != null && player.isSprinting()) {
             currentMoveSpeed *= sprintMultiplier;
         }
 

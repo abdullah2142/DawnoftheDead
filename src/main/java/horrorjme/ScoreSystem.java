@@ -12,7 +12,7 @@ public class ScoreSystem {
 
     // Point values
     private static final int POINTS_PER_KILL = 10;
-    private static final int STARTING_POINTS = 50; // Enough for 1 weapon + 1 ammo
+    private static final int STARTING_POINTS = 100; // Changed from 50 to 100
 
     // Pickup costs
     private static final int WEAPON_COST = 30;

@@ -378,6 +378,12 @@ public class AudioManager {
         loadSoundEffectWithFallbacks("heartbeat", "Sounds/heartbeat.ogg");
         loadSoundEffectWithFallbacks("gun_fire", "Sounds/gun_fire.wav");
         loadSoundEffectWithFallbacks("gun_reload", "Sounds/gun_reload.wav");
+        
+        // NEW: Zombie and player combat sounds
+        loadSoundEffectWithFallbacks("zombie_death", "Sounds/zombie_death.wav");
+        loadSoundEffectWithFallbacks("zombie_attack", "Sounds/zombie_attack.wav");
+        loadSoundEffectWithFallbacks("player_hurt", "Sounds/player_hurt.wav");
+        
         // Ambient sounds
         loadAmbientSound("wind", "Sounds/wind.ogg");
         loadAmbientSound("whispers", "Sounds/whispers.ogg");

@@ -13,10 +13,12 @@ public class ZombieEnemy extends SpriteEntity {
 
     // Player tracking
     private Vector3f playerPosition;
+    private Player player; // ADDED: Reference to player for damage
+    private AudioManager audioManager; // ADDED: Reference to audio manager for sounds
 
     // AI properties
     private float speed = 1.5f;
-    private float detectionRange = 5f;
+    private float detectionRange = 1000f; // CHANGED: Very large detection range
     private float attackRange = 2f;
     private float attackDamage = 10f;
     private float lastAttackTime = 0f;
@@ -30,6 +32,35 @@ public class ZombieEnemy extends SpriteEntity {
     // ADDED: Sprite appearance settings
     private float spriteScale = 0.5f;           // Scale factor for zombie sprites (0.8 = 80% size)
     private Vector3f spriteOffset = new Vector3f(0f, 0, 0); // Offset for fine-tuning position
+
+    // NEW: Zombie type system
+    public enum ZombieType {
+        CLASSIC("Zombies", 3, 4, 5, 16),    // Original zombies
+        MODERN("Zombies2", 1, 3, 6, 13),    // New zombies2
+        HORROR("Zombies3", 1, 2, 3, 9);     // New zombies3
+
+        private final String folderName;
+        private final int idleFrames;
+        private final int walkFrames;
+        private final int attackFrames;
+        private final int deadFrames;
+
+        ZombieType(String folderName, int idleFrames, int walkFrames, int attackFrames, int deadFrames) {
+            this.folderName = folderName;
+            this.idleFrames = idleFrames;
+            this.walkFrames = walkFrames;
+            this.attackFrames = attackFrames;
+            this.deadFrames = deadFrames;
+        }
+
+        public String getFolderName() { return folderName; }
+        public int getIdleFrames() { return idleFrames; }
+        public int getWalkFrames() { return walkFrames; }
+        public int getAttackFrames() { return attackFrames; }
+        public int getDeadFrames() { return deadFrames; }
+    }
+
+    private ZombieType zombieType = ZombieType.CLASSIC; // Default type
 
     public boolean hasProcessedDrop() {
         return dropProcessed;
@@ -87,17 +118,40 @@ public class ZombieEnemy extends SpriteEntity {
 
     }
 
+    /**
+     * NEW: Constructor with AudioManager for sound effects
+     */
+    public ZombieEnemy(Vector3f position, AssetManager assetManager, Camera camera, BulletAppState bulletAppState, AudioManager audioManager) {
+        super(EntityType.ENEMY, position, assetManager, camera, bulletAppState);
+
+        // Configure zombie properties
+        this.health = 50f;
+        this.maxHealth = 50f;
+        this.boundingRadius = 1.8f;
+        setBoundingHeight(3.0f);
+
+        // Configure collision size (radius, height)
+        setCollisionSize(1.0f, 4.5f); //zombie capsule
+
+        // NEW: Set audio manager reference
+        this.audioManager = audioManager;
+
+        // TEMPORARY DEBUG: Enable to see physics capsules
+        // enablePhysicsDebugVisualization();  // ← Uncomment this line to see capsules
+
+    }
+
     @Override
     protected void loadAnimations() {
 
-        // Load all zombie animation states
-        String basePath = "Textures/Zombies/";
+        // Load all zombie animation states using the zombie type's folder
+        String basePath = "Textures/" + zombieType.getFolderName() + "/";
 
         try {
-            spriteAnimator.loadAnimationState("Idle", basePath, 15);
-            spriteAnimator.loadAnimationState("Walk", basePath, 10);
-            spriteAnimator.loadAnimationState("Attack", basePath, 8);
-            spriteAnimator.loadAnimationState("Dead", basePath, 12);
+            spriteAnimator.loadAnimationState("Idle", basePath, zombieType.getIdleFrames());
+            spriteAnimator.loadAnimationState("Walk", basePath, zombieType.getWalkFrames());
+            spriteAnimator.loadAnimationState("Attack", basePath, zombieType.getAttackFrames());
+            spriteAnimator.loadAnimationState("Dead", basePath, zombieType.getDeadFrames());
 
             // ADDED: Apply zombie-specific scaling after loading animations
             applySpriteScaling();
@@ -106,7 +160,7 @@ public class ZombieEnemy extends SpriteEntity {
             playAnimation("Idle");
 
         } catch (Exception e) {
-            System.err.println("Failed to load zombie animations: " + e.getMessage());
+            System.err.println("Failed to load zombie animations for type " + zombieType + ": " + e.getMessage());
             // Continue without animations
         }
     }
@@ -178,24 +232,16 @@ public class ZombieEnemy extends SpriteEntity {
 
         switch (currentState) {
             case IDLE:
-                desiredDirection.set(0, 0, 0);
-
-                if (distanceToPlayer <= detectionRange) {
-                    currentState = ZombieState.WALKING;
-
-                }
+                // CHANGED: Always transition to walking if player position is known
+                currentState = ZombieState.WALKING;
                 break;
 
             case WALKING:
                 if (distanceToPlayer <= attackRange) {
                     currentState = ZombieState.ATTACKING;
                     desiredDirection.set(0, 0, 0);
-                } else if (distanceToPlayer > detectionRange * 1.5f) {
-                    // Lost player
-                    currentState = ZombieState.IDLE;
-                    desiredDirection.set(0, 0, 0);
                 } else {
-                    // Move towards player
+                    // CHANGED: Always move towards player, never lose track
                     Vector3f direction = playerPosition.subtract(position).normalizeLocal();
                     direction.y = 0; // Keep movement on ground plane
                     desiredDirection.set(direction);
@@ -256,14 +302,21 @@ public class ZombieEnemy extends SpriteEntity {
      * Perform attack action
      */
     private void performAttack() {
-
-        // Trigger attack animation if not already playing
-        if (!isAnimating() || !getCurrentAnimation().equals("Attack")) {
-            playAnimation("Attack");
+        // NEW: Play zombie attack sound
+        if (audioManager != null) {
+            audioManager.playSoundEffect("zombie_attack");
         }
 
-        // In a real game, you would apply damage to player here
-        // For now, just log the attack
+        // Deal damage to player if in range
+        if (player != null && playerPosition != null) {
+            float distanceToPlayer = position.distance(playerPosition);
+            if (distanceToPlayer <= attackRange) {
+                // NEW: Randomize damage between 10 and 15
+                float randomDamage = 10f + (float)(Math.random() * 5f); // 10 to 15 damage
+                player.takeDamage(randomDamage);
+                System.out.println("Zombie " + entityId + " attacked player for " + String.format("%.1f", randomDamage) + " damage! Player health: " + player.getHealth());
+            }
+        }
     }
 
     @Override
@@ -285,6 +338,11 @@ public class ZombieEnemy extends SpriteEntity {
         boolean willDie = (health - damage) <= 0;
 
         if (willDie) {
+            // NEW: Play zombie death sound
+            if (audioManager != null) {
+                audioManager.playSoundEffect("zombie_death");
+            }
+
             // Handle death without calling super.takeDamage (which would call destroy())
             health = 0;
             currentState = ZombieState.DEAD;
@@ -379,6 +437,34 @@ public class ZombieEnemy extends SpriteEntity {
 
     }
 
+    // NEW: Convenience methods for zombie types
+    /**
+     * Make this a classic zombie (original style)
+     */
+    public void makeClassicZombie() {
+        setZombieType(ZombieType.CLASSIC);
+        setSpriteScale(1.0f);
+        setSpriteOffset(0, 0, 0);
+    }
+
+    /**
+     * Make this a modern zombie (Zombies2 style)
+     */
+    public void makeModernZombie() {
+        setZombieType(ZombieType.MODERN);
+        setSpriteScale(1.0f);
+        setSpriteOffset(0, 0, 0);
+    }
+
+    /**
+     * Make this a horror zombie (Zombies3 style)
+     */
+    public void makeHorrorZombie() {
+        setZombieType(ZombieType.HORROR);
+        setSpriteScale(1.0f);
+        setSpriteOffset(0, 0, 0);
+    }
+
     // ==== PUBLIC API ====
 
     /**
@@ -391,11 +477,44 @@ public class ZombieEnemy extends SpriteEntity {
     }
 
     /**
+     * Set player reference for damage dealing
+     */
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    /**
+     * Set audio manager reference for sound effects
+     */
+    public void setAudioManager(AudioManager audioManager) {
+        this.audioManager = audioManager;
+    }
+
+    /**
+     * Set zombie type and reload animations
+     */
+    public void setZombieType(ZombieType type) {
+        this.zombieType = type;
+        
+        // Reload animations with new type if sprite animator is already initialized
+        if (spriteAnimator != null) {
+            loadAnimations();
+        }
+    }
+
+    /**
+     * Get current zombie type
+     */
+    public ZombieType getZombieType() {
+        return zombieType;
+    }
+
+    /**
      * Get debug status string
      */
     public String getDebugStatus() {
-        String baseStatus = String.format("Zombie %s: State=%s, Anim=%s, Health=%.1f, Scale=%.2f",
-                entityId, currentState, getCurrentAnimation(), health, spriteScale);
+        String baseStatus = String.format("Zombie %s: Type=%s, State=%s, Anim=%s, Health=%.1f, Scale=%.2f",
+                entityId, zombieType, currentState, getCurrentAnimation(), health, spriteScale);
 
         String distanceStatus = "";
         if (playerPosition != null) {
@@ -463,10 +582,8 @@ public class ZombieEnemy extends SpriteEntity {
      * Check if zombie can see player (simple line-of-sight)
      */
     public boolean canSeePlayer() {
-        if (playerPosition == null) return false;
-
-        float distance = position.distance(playerPosition);
-        return distance <= detectionRange;
+        // CHANGED: Always return true since zombies always know where player is
+        return playerPosition != null;
     }
 
     /**

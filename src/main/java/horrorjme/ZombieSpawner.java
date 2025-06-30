@@ -17,6 +17,8 @@ public class ZombieSpawner {
     private Camera camera;
     private BulletAppState bulletAppState;
     private EntityManager entityManager;
+    private Player player;
+    private AudioManager audioManager;
 
     // Spawn configuration
     private int zombieCount = 15;
@@ -40,8 +42,19 @@ public class ZombieSpawner {
     }
 
     /**
-     * Spawn initial zombies around a specific position
+     * Set player reference for damage dealing
      */
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    /**
+     * Set audio manager reference for sound effects
+     */
+    public void setAudioManager(AudioManager audioManager) {
+        this.audioManager = audioManager;
+    }
+
     public void spawnInitialZombies(Vector3f playerStartPosition) {
         if (entityManager == null) {
             System.err.println("Cannot spawn zombies - EntityManager is null");
@@ -58,6 +71,13 @@ public class ZombieSpawner {
 
         // Track spawned positions to prevent overlap
         List<Vector3f> spawnedPositions = new ArrayList<>();
+
+        // === SPAWN MASSIVE ENEMY ===
+        Vector3f massiveSpawnPos = generateRandomSpawnPosition(playerStartPosition, spawnedPositions);
+        ZombieEnemy massiveEnemy = createMassiveEnemy(massiveSpawnPos);
+        spawnedPositions.add(massiveSpawnPos.clone());
+        entityManager.addEntity(massiveEnemy);
+        System.out.println("Spawned MASSIVE ENEMY at: " + massiveSpawnPos);
 
         for (int i = 0; i < zombieCount; i++) {
             Vector3f spawnPos = generateRandomSpawnPosition(playerStartPosition, spawnedPositions);
@@ -94,6 +114,25 @@ public class ZombieSpawner {
         // Get existing zombie positions to avoid overlap
         List<Vector3f> existingPositions = getExistingZombiePositions();
 
+        // === SPAWN MASSIVE ENEMY (only if none exists) ===
+        boolean massiveExists = false;
+        for (Entity entity : entityManager.getEntitiesByType(Entity.EntityType.ENEMY)) {
+            if (entity instanceof ZombieEnemy) {
+                ZombieEnemy z = (ZombieEnemy) entity;
+                if (z.getSpriteScale() >= 2.0f && z.getMaxHealth() >= 500f) {
+                    massiveExists = true;
+                    break;
+                }
+            }
+        }
+        if (!massiveExists) {
+            Vector3f massiveSpawnPos = generateRandomSpawnPosition(playerPosition, existingPositions);
+            ZombieEnemy massiveEnemy = createMassiveEnemy(massiveSpawnPos);
+            existingPositions.add(massiveSpawnPos.clone());
+            entityManager.addEntity(massiveEnemy);
+            System.out.println("Spawned MASSIVE ENEMY at: " + massiveSpawnPos);
+        }
+
         for (int i = 0; i < count; i++) {
             Vector3f spawnPos = generateRandomSpawnPosition(playerPosition, existingPositions);
             ZombieEnemy zombie = createZombie(spawnPos, i);
@@ -110,7 +149,12 @@ public class ZombieSpawner {
      * Create a single zombie with random properties
      */
     private ZombieEnemy createZombie(Vector3f position, int index) {
-        ZombieEnemy zombie = new ZombieEnemy(position, assetManager, camera, bulletAppState);
+        ZombieEnemy zombie = new ZombieEnemy(position, assetManager, camera, bulletAppState, audioManager);
+
+        // Set player reference for damage dealing
+        if (player != null) {
+            zombie.setPlayer(player);
+        }
 
         // Apply random customization
         customizeZombie(zombie, index);
@@ -205,9 +249,16 @@ public class ZombieSpawner {
      * Apply random customization to a zombie
      */
     private void customizeZombie(ZombieEnemy zombie, int index) {
+        // NEW: Randomly select zombie type (equal chance for each type)
+        ZombieEnemy.ZombieType[] zombieTypes = ZombieEnemy.ZombieType.values();
+        ZombieEnemy.ZombieType randomType = zombieTypes[(int)(Math.random() * zombieTypes.length)];
+        zombie.setZombieType(randomType);
+        
+        System.out.println("Created " + randomType + " zombie #" + (index+1));
+
         // Random basic properties
         float randomSpeed = 8.0f + (float)(Math.random() * 2.0f);        // 1.0 to 3.0
-        float randomDetection = 8f + (float)(Math.random() * 7f);        // 8 to 15
+        float randomDetection = 1000f; // CHANGED: Always maximum detection range
         float randomAttackRange = 1.5f + (float)(Math.random() * 1.5f);  // 1.5 to 3.0
 
         zombie.setSpeed(randomSpeed);
@@ -317,17 +368,79 @@ public class ZombieSpawner {
      * Get configuration summary for debugging
      */
     public String getConfigurationSummary() {
-        StringBuilder config = new StringBuilder();
-        config.append("=== Zombie Spawner Configuration ===\n");
-        config.append("Zombie Count: ").append(zombieCount).append("\n");
-        config.append("Spawn Distance: ").append(minSpawnDistance).append(" to ").append(maxSpawnDistance).append("\n");
-        config.append("Min Zombie Distance: ").append(minZombieDistance).append("\n");
-        config.append("Map Scale: ").append(mapScale).append("\n");
-        config.append("Fast Zombie Chance: ").append(String.format("%.1f%%", fastZombieChance * 100)).append("\n");
-        config.append("Large Zombie Chance: ").append(String.format("%.1f%%", largeZombieChance * 100)).append("\n");
-        config.append("Small Zombie Chance: ").append(String.format("%.1f%%", smallZombieChance * 100)).append("\n");
-        float normalChance = 1.0f - (fastZombieChance + largeZombieChance + smallZombieChance);
-        config.append("Normal Zombie Chance: ").append(String.format("%.1f%%", normalChance * 100));
-        return config.toString();
+        StringBuilder summary = new StringBuilder();
+        summary.append("=== Zombie Spawner Configuration ===\n");
+        summary.append("Zombie Count: ").append(zombieCount).append("\n");
+        summary.append("Spawn Distance: ").append(minSpawnDistance).append(" to ").append(maxSpawnDistance).append("\n");
+        summary.append("Min Zombie Distance: ").append(minZombieDistance).append("\n");
+        summary.append("Map Scale: ").append(mapScale).append("\n");
+        summary.append("Zombie Types: CLASSIC, MODERN, HORROR (random selection)\n");
+        summary.append("Special Zombie Chances:\n");
+        summary.append("  Fast: ").append(fastZombieChance * 100).append("%\n");
+        summary.append("  Large: ").append(largeZombieChance * 100).append("%\n");
+        summary.append("  Small: ").append(smallZombieChance * 100).append("%\n");
+        summary.append("  Normal: ").append((1.0f - fastZombieChance - largeZombieChance - smallZombieChance) * 100).append("%\n");
+        summary.append("=====================================");
+        return summary.toString();
+    }
+
+    /**
+     * Get statistics about spawned zombie types
+     */
+    public String getZombieTypeStatistics() {
+        if (entityManager == null) {
+            return "No entity manager available";
+        }
+
+        int totalZombies = 0;
+        int classicCount = 0;
+        int modernCount = 0;
+        int horrorCount = 0;
+
+        for (Entity entity : entityManager.getEntitiesByType(Entity.EntityType.ENEMY)) {
+            if (entity instanceof ZombieEnemy && !entity.isDestroyed()) {
+                ZombieEnemy zombie = (ZombieEnemy) entity;
+                totalZombies++;
+                
+                switch (zombie.getZombieType()) {
+                    case CLASSIC:
+                        classicCount++;
+                        break;
+                    case MODERN:
+                        modernCount++;
+                        break;
+                    case HORROR:
+                        horrorCount++;
+                        break;
+                }
+            }
+        }
+
+        StringBuilder stats = new StringBuilder();
+        stats.append("=== Zombie Type Statistics ===\n");
+        stats.append("Total Active Zombies: ").append(totalZombies).append("\n");
+        stats.append("Classic Zombies: ").append(classicCount).append(" (").append(totalZombies > 0 ? (classicCount * 100 / totalZombies) : 0).append("%)\n");
+        stats.append("Modern Zombies: ").append(modernCount).append(" (").append(totalZombies > 0 ? (modernCount * 100 / totalZombies) : 0).append("%)\n");
+        stats.append("Horror Zombies: ").append(horrorCount).append(" (").append(totalZombies > 0 ? (horrorCount * 100 / totalZombies) : 0).append("%)\n");
+        stats.append("=============================");
+        return stats.toString();
+    }
+
+    // === Helper to create a massive enemy ===
+    private ZombieEnemy createMassiveEnemy(Vector3f position) {
+        ZombieEnemy.ZombieType[] zombieTypes = ZombieEnemy.ZombieType.values();
+        ZombieEnemy.ZombieType randomType = zombieTypes[(int)(Math.random() * zombieTypes.length)];
+        ZombieEnemy massive = new ZombieEnemy(position, assetManager, camera, bulletAppState, audioManager);
+        massive.setZombieType(randomType);
+        massive.setSpriteScale(2.5f); // Visually massive
+        massive.setCollisionSize(1.2f, 5.0f); // Big collision
+        massive.setMaxHealth(800f); // Very high health
+        massive.setHealth(800f);
+        massive.setAttackDamage(60f); // Very high damage
+        massive.setSpeed(3.0f); // 2x faster than regular zombies
+        massive.setDetectionRange(1000f);
+        massive.setAttackRange(3.5f);
+        massive.setSpriteOffset(0, -0.5f, 0); // Lowered for big sprite
+        return massive;
     }
 }

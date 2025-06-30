@@ -35,6 +35,9 @@ public class Player implements Control {
     // CRITICAL FIX: Reference to main game for weapon system initialization
     private HorrorGameJME gameInstance;
 
+    // NEW: Reference to HUD manager for damage effects
+    private HUDManager hudManager;
+
     // Physics reference for ground detection
     private CharacterControl characterControl;
 
@@ -77,6 +80,21 @@ public class Player implements Control {
     // CRITICAL FIX: Flag to track if weapon systems have been initialized
     private boolean weaponSystemsInitialized = false;
 
+    // NEW: Stamina system
+    private float stamina = 100f;
+    private float maxStamina = 100f;
+    private float staminaDrainRate = 10f; // Stamina per second when sprinting
+    private float staminaRecoveryRate = 33.33f; // Stamina per second when recovering
+    private float sprintDuration = 7f; // Maximum sprint time in seconds
+    private float exhaustionDuration = 3f; // Exhaustion time in seconds
+    private float currentSprintTime = 0f;
+    private float currentExhaustionTime = 0f;
+    private boolean isSprinting = false;
+    private boolean isExhausted = false;
+    private float normalSpeed = 1.0f;
+    private float sprintSpeed = 2.0f;
+    private float exhaustedSpeed = 0.3f;
+
     public Player(Camera camera, Node rootNode, int[][] mapData, AudioManager audioManager) {
         this.camera = camera;
         this.rootNode = rootNode;
@@ -114,6 +132,12 @@ public class Player implements Control {
     public void setWeaponEffectsManager(WeaponEffectsManager weaponEffectsManager) {
         this.weaponEffectsManager = weaponEffectsManager;
         System.out.println("Player: Weapon effects manager set - " + (weaponEffectsManager != null ? "SUCCESS" : "NULL"));
+    }
+
+    // NEW: Set HUD manager reference for damage effects
+    public void setHUDManager(HUDManager hudManager) {
+        this.hudManager = hudManager;
+        System.out.println("Player: HUD manager reference set - " + (hudManager != null ? "SUCCESS" : "FAILED"));
     }
 
     public void setCharacterControl(CharacterControl characterControl) {
@@ -174,22 +198,37 @@ public class Player implements Control {
     }
 
     public void update(float tpf) {
-        // Update fire rate timer
-        lastFireTime += tpf;
+        if (isDead) return;
 
+        // Update stamina system
+        updateStamina(tpf);
+
+        // Update movement based on stamina state
+        updateMovement(tpf);
+
+        // Update weapon systems
+        updateWeaponSystems(tpf);
+
+        // Update torch position
         updateTorchPosition();
-        updateFootstepAudio(tpf);
 
-        // CRITICAL FIX: Only update weapon systems if we have a weapon AND systems are initialized
-        if (hasAnyWeapon() && weaponSystemsInitialized) {
-            updateWeaponSystems(tpf);
-        }
+        // Update footstep audio
+        updateFootstepAudio(tpf);
     }
 
     /**
      * NEW: Update weapon systems only when player has weapons
      */
     private void updateWeaponSystems(float tpf) {
+        // NEW: Hide weapon when player is dead
+        if (isDead) {
+            if (weaponAnimator != null) {
+                weaponAnimator.setProceduralMotion(false);
+                weaponAnimator.hideWeapon();
+            }
+            return;
+        }
+
         // Update weapon effects
         if (weaponEffectsManager != null) {
             weaponEffectsManager.update(tpf);
@@ -232,6 +271,11 @@ public class Player implements Control {
     public void setWeaponAnimator(ModernWeaponAnimator weaponAnimator) {
         this.weaponAnimator = weaponAnimator;
         System.out.println("Player: Weapon animator set - " + (weaponAnimator != null ? "SUCCESS" : "NULL"));
+        
+        // NEW: Show weapon when animator is set (if player is alive)
+        if (weaponAnimator != null && !isDead) {
+            weaponAnimator.showWeapon();
+        }
     }
 
     /**
@@ -632,10 +676,29 @@ public class Player implements Control {
             health = 0;
             isDead = true;
         }
+        
+        // NEW: Play player hurt sound
+        if (audioManager != null) {
+            audioManager.playSoundEffect("player_hurt");
+        }
+        
+        // NEW: Trigger red screen damage effect
+        if (hudManager != null) {
+            hudManager.triggerDamageEffect();
+        }
     }
 
     public void heal(float amount) {
         health = Math.min(maxHealth, health + amount);
+    }
+
+    /**
+     * NEW: Show weapon when player is revived
+     */
+    public void showWeapon() {
+        if (weaponAnimator != null && !isDead) {
+            weaponAnimator.showWeapon();
+        }
     }
 
     public void setAudioManager(AudioManager audioManager) {
@@ -670,5 +733,191 @@ public class Player implements Control {
 
     @Override
     public void read(JmeImporter im) throws IOException {
+    }
+
+    /**
+     * Update stamina system
+     */
+    private void updateStamina(float tpf) {
+        // Update fire rate timer
+        lastFireTime += tpf;
+
+        // Handle exhaustion state
+        if (isExhausted) {
+            currentExhaustionTime += tpf;
+            if (currentExhaustionTime >= exhaustionDuration) {
+                isExhausted = false;
+                currentExhaustionTime = 0f;
+                stamina = maxStamina; // Full stamina recovery after exhaustion
+                System.out.println("Player: Exhaustion ended, stamina fully recovered");
+            }
+            return; // Don't update stamina during exhaustion
+        }
+
+        // Handle sprinting state
+        if (isSprinting && stamina > 0) {
+            currentSprintTime += tpf;
+            stamina -= staminaDrainRate * tpf;
+            
+            if (stamina <= 0) {
+                stamina = 0;
+                isSprinting = false;
+                isExhausted = true;
+                currentSprintTime = 0f;
+                currentExhaustionTime = 0f;
+                System.out.println("Player: Stamina depleted, entering exhaustion state");
+            } else if (currentSprintTime >= sprintDuration) {
+                isSprinting = false;
+                currentSprintTime = 0f;
+                System.out.println("Player: Sprint duration limit reached");
+            }
+        } else {
+            // Normal stamina recovery when not sprinting
+            if (stamina < maxStamina) {
+                stamina += staminaRecoveryRate * tpf;
+                if (stamina > maxStamina) {
+                    stamina = maxStamina;
+                }
+            }
+        }
+    }
+
+    /**
+     * Update movement based on stamina state
+     */
+    private void updateMovement(float tpf) {
+        // CRITICAL FIX: Only update weapon systems if we have a weapon AND systems are initialized
+        if (hasAnyWeapon() && weaponSystemsInitialized) {
+            updateWeaponSystems(tpf);
+        }
+
+        // Calculate movement speed based on stamina state
+        float currentSpeed = normalSpeed;
+        if (isSprinting) {
+            currentSpeed = sprintSpeed;
+        } else if (isExhausted) {
+            currentSpeed = exhaustedSpeed;
+        }
+
+        // Apply movement with current speed
+        if (characterControl != null) {
+            // Note: CharacterControl doesn't have setWalkSpeed, speed is handled in movement calculation
+            // The speed will be applied when calculating movement vectors
+        }
+    }
+
+    /**
+     * Start sprinting (if stamina available)
+     */
+    public void startSprint() {
+        if (!isExhausted && stamina > 0 && !isSprinting) {
+            isSprinting = true;
+            currentSprintTime = 0f;
+            System.out.println("Player: Started sprinting");
+        }
+    }
+
+    /**
+     * Stop sprinting
+     */
+    public void stopSprint() {
+        if (isSprinting) {
+            isSprinting = false;
+            currentSprintTime = 0f;
+            System.out.println("Player: Stopped sprinting");
+        }
+    }
+
+    /**
+     * Check if player can sprint
+     */
+    public boolean canSprint() {
+        return !isExhausted && stamina > 0 && !isSprinting;
+    }
+
+    /**
+     * Check if player is currently sprinting
+     */
+    public boolean isSprinting() {
+        return isSprinting;
+    }
+
+    /**
+     * Check if player is exhausted
+     */
+    public boolean isExhausted() {
+        return isExhausted;
+    }
+
+    /**
+     * Get current stamina percentage
+     */
+    public float getStaminaPercentage() {
+        return stamina / maxStamina;
+    }
+
+    /**
+     * Get current stamina value
+     */
+    public float getStamina() {
+        return stamina;
+    }
+
+    /**
+     * Get maximum stamina value
+     */
+    public float getMaxStamina() {
+        return maxStamina;
+    }
+
+    /**
+     * NEW: Reset player state for a new game
+     */
+    public void reset() {
+        System.out.println("Player: Resetting for new game...");
+        
+        // Reset health and death state
+        health = maxHealth;
+        isDead = false;
+        
+        // Reset stamina
+        stamina = maxStamina;
+        currentSprintTime = 0f;
+        currentExhaustionTime = 0f;
+        isSprinting = false;
+        isExhausted = false;
+        
+        // Reset movement flags
+        moveForward = false;
+        moveBackward = false;
+        strafeLeft = false;
+        strafeRight = false;
+        
+        // Reset weapon systems
+        weaponSystemsInitialized = false;
+        isReloading = false;
+        lastFireTime = 0f;
+        
+        // Clear inventories
+        if (weaponInventory != null) {
+            weaponInventory = new WeaponInventory();
+        }
+        if (ammoInventory != null) {
+            ammoInventory = new AmmoInventory();
+        }
+        
+        // Reset weapon system references
+        weaponAnimator = null;
+        weaponEffectsManager = null;
+        muzzleFlashSystem = null;
+        
+        // Reset mouse deltas
+        currentMouseDeltaX = 0f;
+        currentMouseDeltaY = 0f;
+        
+        // Reset footstep timer
+        footstepTimer = 0f;
+        
+        System.out.println("Player: Reset complete");
     }
 }
