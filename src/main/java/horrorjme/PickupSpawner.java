@@ -11,8 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * FIXED PickupSpawner - Handles random placement of weapons and ammo throughout the game world
- * Now properly spawns weapons at reasonable distances from player
+ * Updated PickupSpawner - Now includes health pack spawning for point economy
  */
 public class PickupSpawner {
 
@@ -22,21 +21,23 @@ public class PickupSpawner {
 
     // Spawn configuration
     private List<Vector3f> validSpawnPoints;
-    private List<Vector3f> weaponSpawnPoints;    // Premium locations for weapons
-    private List<Vector3f> ammoSpawnPoints;      // Regular locations for ammo
+    private List<Vector3f> weaponSpawnPoints;
+    private List<Vector3f> ammoSpawnPoints;
 
-    // Spawn parameters (all randomized as requested)
+    // Spawn parameters (reduced for point economy)
     private int minWeapons = 2;
-    private int maxWeapons = 5;
-    private int minAmmoPickups = 8;
-    private int maxAmmoPickups = 15;
+    private int maxWeapons = 3;
+    private int minAmmoPickups = 4;
+    private int maxAmmoPickups = 8;
+    private int minHealthPickups = 2;
+    private int maxHealthPickups = 4;
 
-    // FIXED: Map scanning parameters with proper spawn distances
-    private float groundScanHeight = 50f;      // How high above ground to start ray
-    private float minSpawnDistance = 5f;       // Minimum distance between pickups
-    private float maxSpawnDistance = 25f;      // ADDED: Maximum distance for spawns (reasonable for pickups)
-    private float minPickupDistance = 3f;      // ADDED: Minimum distance between different pickups
-    private float playerStartRadius = 8f;      // Don't spawn too close to player start
+    // Map scanning parameters
+    private float groundScanHeight = 50f;
+    private float minSpawnDistance = 5f;
+    private float maxSpawnDistance = 25f;
+    private float minPickupDistance = 3f;
+    private float playerStartRadius = 8f;
     private Vector3f playerStartPosition;
 
     public PickupSpawner(AssetManager assetManager, AudioManager audioManager, BulletAppState bulletAppState) {
@@ -49,7 +50,7 @@ public class PickupSpawner {
     }
 
     /**
-     * IMPROVED: Scan the loaded map for valid pickup spawn points
+     * Scan the loaded map for valid pickup spawn points
      */
     public void scanMapForSpawnPoints(Spatial map, Vector3f playerStart) {
         this.playerStartPosition = playerStart.clone();
@@ -57,12 +58,10 @@ public class PickupSpawner {
         System.out.println("Scanning map for pickup spawn points...");
         System.out.println("Spawn distance range: " + minSpawnDistance + " to " + maxSpawnDistance);
 
-        // Clear existing spawn points
         validSpawnPoints.clear();
         weaponSpawnPoints.clear();
         ammoSpawnPoints.clear();
 
-        // IMPROVED: Use radial scanning around player instead of full map grid
         scanRadialAroundPlayer();
 
         System.out.printf("Scan complete: %d valid spawn points found%n", validSpawnPoints.size());
@@ -71,16 +70,14 @@ public class PickupSpawner {
     }
 
     /**
-     * NEW: Scan in a circle around the player at reasonable distances
+     * Scan in a circle around the player at reasonable distances
      */
     private void scanRadialAroundPlayer() {
         int totalChecks = 0;
         int validPoints = 0;
 
-        // Generate spawn points in rings around the player
         for (float radius = minSpawnDistance; radius <= maxSpawnDistance; radius += 2f) {
-            // Calculate how many points to check at this radius
-            int pointsAtRadius = Math.max(8, (int)(radius * 0.8f)); // More points for larger radius
+            int pointsAtRadius = Math.max(8, (int)(radius * 0.8f));
 
             for (int i = 0; i < pointsAtRadius; i++) {
                 float angle = (float)(2 * Math.PI * i / pointsAtRadius);
@@ -90,14 +87,12 @@ public class PickupSpawner {
 
                 totalChecks++;
 
-                // Find ground level at this position
                 Vector3f groundPos = findGroundLevel(x, z, playerStartPosition.y + groundScanHeight);
 
                 if (groundPos != null && isValidSpawnLocation(groundPos)) {
                     validSpawnPoints.add(groundPos);
                     validPoints++;
 
-                    // IMPROVED: Categorize spawn points based on radius and position
                     if (isGoodWeaponLocation(groundPos, radius)) {
                         weaponSpawnPoints.add(groundPos);
                     } else {
@@ -116,32 +111,29 @@ public class PickupSpawner {
      */
     private Vector3f findGroundLevel(float x, float z, float startY) {
         if (bulletAppState == null) {
-            return new Vector3f(x, 0, z); // Fallback to ground level
+            return new Vector3f(x, 0, z);
         }
 
         Vector3f rayStart = new Vector3f(x, startY, z);
-        Vector3f rayEnd = new Vector3f(x, startY - 100f, z); // Cast down 100 units
+        Vector3f rayEnd = new Vector3f(x, startY - 100f, z);
 
         List<PhysicsRayTestResult> results = bulletAppState.getPhysicsSpace().rayTest(rayStart, rayEnd);
 
         for (PhysicsRayTestResult result : results) {
-            // Hit something solid - calculate hit point
             float hitFraction = result.getHitFraction();
             Vector3f rayDirection = rayEnd.subtract(rayStart);
             Vector3f hitPoint = rayStart.add(rayDirection.mult(hitFraction));
 
-            // Add small offset above ground
             return hitPoint.add(0, 0.2f, 0);
         }
 
-        return null; // No ground found
+        return null;
     }
 
     /**
-     * IMPROVED: Check if a location is valid for spawning pickups
+     * Check if a location is valid for spawning pickups
      */
     private boolean isValidSpawnLocation(Vector3f position) {
-        // Don't spawn too close to player start
         if (playerStartPosition != null) {
             float distanceFromStart = position.distance(playerStartPosition);
             if (distanceFromStart < playerStartRadius) {
@@ -149,21 +141,19 @@ public class PickupSpawner {
             }
         }
 
-        // Don't spawn too close to other spawn points
         for (Vector3f existingPoint : validSpawnPoints) {
             if (position.distance(existingPoint) < minPickupDistance) {
                 return false;
             }
         }
 
-        // Check if there's enough space above the spawn point (not inside geometry)
         if (bulletAppState != null) {
             Vector3f checkStart = position.clone();
-            Vector3f checkEnd = position.add(0, 2f, 0); // 2 units above ground
+            Vector3f checkEnd = position.add(0, 2f, 0);
 
             List<PhysicsRayTestResult> results = bulletAppState.getPhysicsSpace().rayTest(checkStart, checkEnd);
             if (!results.isEmpty()) {
-                return false; // Something blocking above
+                return false;
             }
         }
 
@@ -171,17 +161,11 @@ public class PickupSpawner {
     }
 
     /**
-     * FIXED: Determine if a location is good for weapon spawning
-     * Now uses radius and variety instead of just distance from center
+     * Determine if a location is good for weapon spawning
      */
     private boolean isGoodWeaponLocation(Vector3f position, float radius) {
-        // Weapons get medium-distance locations (not too close, not too far)
-        // Sweet spot for weapons: 10-20 units from player
         boolean goodDistance = radius >= 10f && radius <= 20f;
-
-        // Add some randomness so not all weapons are at the same distance
-        boolean randomFactor = FastMath.nextRandomFloat() < 0.4f; // 40% chance
-
+        boolean randomFactor = FastMath.nextRandomFloat() < 0.4f;
         return goodDistance || randomFactor;
     }
 
@@ -194,21 +178,17 @@ public class PickupSpawner {
             return;
         }
 
-        // Random number of weapons to spawn
         int weaponRange = maxWeapons - minWeapons + 1;
         int weaponCount = minWeapons + (int)(FastMath.nextRandomFloat() * weaponRange);
 
         System.out.println("Spawning " + weaponCount + " weapons...");
 
-        // Shuffle spawn points for randomness
         List<Vector3f> shuffledPoints = new ArrayList<>(weaponSpawnPoints);
 
         for (int i = 0; i < weaponCount && i < shuffledPoints.size(); i++) {
-            // Pick random spawn point
             int randomIndex = (int)(FastMath.nextRandomFloat() * shuffledPoints.size());
             Vector3f spawnPos = shuffledPoints.remove(randomIndex);
 
-            // Create random weapon pickup
             WeaponPickup weapon = DropSystem.createRandomWeaponSpawn(spawnPos, assetManager, audioManager);
             entityManager.addEntity(weapon);
 
@@ -228,21 +208,17 @@ public class PickupSpawner {
             return;
         }
 
-        // Random number of ammo pickups to spawn
         int ammoRange = maxAmmoPickups - minAmmoPickups + 1;
         int ammoCount = minAmmoPickups + (int)(FastMath.nextRandomFloat() * ammoRange);
 
         System.out.println("Spawning " + ammoCount + " ammo pickups...");
 
-        // Shuffle spawn points for randomness
         List<Vector3f> shuffledPoints = new ArrayList<>(ammoSpawnPoints);
 
         for (int i = 0; i < ammoCount && i < shuffledPoints.size(); i++) {
-            // Pick random spawn point
             int randomIndex = (int)(FastMath.nextRandomFloat() * shuffledPoints.size());
             Vector3f spawnPos = shuffledPoints.remove(randomIndex);
 
-            // Create random ammo pickup
             AmmoPickup ammo = DropSystem.createRandomAmmoSpawn(spawnPos, assetManager, audioManager);
             entityManager.addEntity(ammo);
 
@@ -254,46 +230,82 @@ public class PickupSpawner {
     }
 
     /**
-     * Spawn both weapons and ammo in one call
+     * Spawn random health pickups throughout the map
+     */
+    public void spawnRandomHealthPacks(EntityManager entityManager) {
+        if (ammoSpawnPoints.isEmpty()) {
+            System.err.println("No health spawn points available!");
+            return;
+        }
+
+        int healthRange = maxHealthPickups - minHealthPickups + 1;
+        int healthCount = minHealthPickups + (int)(FastMath.nextRandomFloat() * healthRange);
+
+        System.out.println("Spawning " + healthCount + " health pickups...");
+
+        List<Vector3f> shuffledPoints = new ArrayList<>(ammoSpawnPoints);
+
+        for (int i = 0; i < healthCount && i < shuffledPoints.size(); i++) {
+            int randomIndex = (int)(FastMath.nextRandomFloat() * shuffledPoints.size());
+            Vector3f spawnPos = shuffledPoints.remove(randomIndex);
+
+            HealthPickup health = DropSystem.createRandomHealthSpawn(spawnPos, assetManager, audioManager);
+            entityManager.addEntity(health);
+
+            System.out.printf("Spawned Health Pack at (%.1f, %.1f, %.1f) - Distance from player: %.1f%n",
+                    spawnPos.x, spawnPos.y, spawnPos.z,
+                    spawnPos.distance(playerStartPosition));
+        }
+    }
+
+    /**
+     * Spawn all pickups including health packs
      */
     public void spawnAllPickups(EntityManager entityManager) {
         spawnRandomWeapons(entityManager);
         spawnRandomAmmo(entityManager);
+        spawnRandomHealthPacks(entityManager);
 
-        System.out.println("All pickups spawned successfully!");
+        System.out.println("All pickups (including health packs) spawned successfully!");
     }
 
-    // IMPROVED: Configuration methods with proper spawn distances
+    /**
+     * Configuration presets
+     */
     public void applySpawnPreset(SpawnPreset preset) {
         switch (preset) {
             case SCARCE_RESOURCES:
                 setWeaponSpawnRange(1, 2);
-                setAmmoSpawnRange(3, 6);
-                setSpawnDistanceRange(8f, 20f);      // Closer spawns for scarce mode
+                setAmmoSpawnRange(3, 5);
+                setHealthSpawnRange(1, 2);
+                setSpawnDistanceRange(8f, 20f);
                 setMinSpawnDistance(8f);
                 setPlayerStartRadius(6f);
                 break;
 
             case NORMAL_RESOURCES:
-                setWeaponSpawnRange(2, 4);
-                setAmmoSpawnRange(6, 10);
-                setSpawnDistanceRange(6f, 25f);      // Reasonable distance
+                setWeaponSpawnRange(2, 3);
+                setAmmoSpawnRange(4, 8);
+                setHealthSpawnRange(2, 3);
+                setSpawnDistanceRange(6f, 25f);
                 setMinSpawnDistance(5f);
                 setPlayerStartRadius(8f);
                 break;
 
             case ABUNDANT_RESOURCES:
-                setWeaponSpawnRange(3, 6);
-                setAmmoSpawnRange(10, 15);
-                setSpawnDistanceRange(5f, 30f);      // Slightly farther for more variety
+                setWeaponSpawnRange(3, 4);
+                setAmmoSpawnRange(6, 10);
+                setHealthSpawnRange(3, 5);
+                setSpawnDistanceRange(5f, 30f);
                 setMinSpawnDistance(3f);
                 setPlayerStartRadius(5f);
                 break;
 
             case TESTING_MODE:
-                setWeaponSpawnRange(5, 8);
-                setAmmoSpawnRange(15, 25);
-                setSpawnDistanceRange(3f, 15f);      // Very close for testing
+                setWeaponSpawnRange(4, 6);
+                setAmmoSpawnRange(8, 12);
+                setHealthSpawnRange(4, 6);
+                setSpawnDistanceRange(3f, 15f);
                 setMinSpawnDistance(2f);
                 setPlayerStartRadius(3f);
                 break;
@@ -304,13 +316,13 @@ public class PickupSpawner {
     }
 
     public enum SpawnPreset {
-        SCARCE_RESOURCES,    // Survival horror - very limited resources
-        NORMAL_RESOURCES,    // Balanced gameplay
-        ABUNDANT_RESOURCES,  // More action-oriented
-        TESTING_MODE        // Lots of pickups for testing
+        SCARCE_RESOURCES,
+        NORMAL_RESOURCES,
+        ABUNDANT_RESOURCES,
+        TESTING_MODE
     }
 
-    // IMPROVED: Configuration methods
+    // Configuration methods
     public void setWeaponSpawnRange(int min, int max) {
         this.minWeapons = Math.max(0, min);
         this.maxWeapons = Math.max(min, max);
@@ -321,17 +333,20 @@ public class PickupSpawner {
         this.maxAmmoPickups = Math.max(min, max);
     }
 
+    public void setHealthSpawnRange(int min, int max) {
+        this.minHealthPickups = Math.max(0, min);
+        this.maxHealthPickups = Math.max(min, max);
+    }
+
     public void setMinSpawnDistance(float distance) {
         this.minSpawnDistance = Math.max(1f, distance);
     }
 
-    // NEW: Set spawn distance range
     public void setSpawnDistanceRange(float minDistance, float maxDistance) {
         this.minSpawnDistance = Math.max(1f, minDistance);
         this.maxSpawnDistance = Math.max(minDistance + 1f, maxDistance);
     }
 
-    // NEW: Set minimum distance between pickups
     public void setMinPickupDistance(float distance) {
         this.minPickupDistance = Math.max(1f, distance);
     }
@@ -347,7 +362,6 @@ public class PickupSpawner {
         System.out.println("Cleared all spawn points");
     }
 
-    // IMPROVED: Better statistics with distance info
     public String getSpawnStatistics() {
         StringBuilder stats = new StringBuilder();
         stats.append("=== PICKUP SPAWN STATISTICS ===\n");
@@ -356,11 +370,11 @@ public class PickupSpawner {
         stats.append("Ammo spawn points: ").append(ammoSpawnPoints.size()).append("\n");
         stats.append("Weapon spawn range: ").append(minWeapons).append("-").append(maxWeapons).append("\n");
         stats.append("Ammo spawn range: ").append(minAmmoPickups).append("-").append(maxAmmoPickups).append("\n");
+        stats.append("Health spawn range: ").append(minHealthPickups).append("-").append(maxHealthPickups).append("\n");
         stats.append("Spawn distance range: ").append(minSpawnDistance).append("-").append(maxSpawnDistance).append("\n");
         stats.append("Min pickup distance: ").append(minPickupDistance).append("\n");
         stats.append("Player start radius: ").append(playerStartRadius).append("\n");
 
-        // Add distance analysis
         if (!validSpawnPoints.isEmpty() && playerStartPosition != null) {
             float minDist = Float.MAX_VALUE;
             float maxDist = 0f;
@@ -376,7 +390,7 @@ public class PickupSpawner {
         return stats.toString();
     }
 
-    // NEW: Get current spawn distance settings
+    // Getters
     public float getMinSpawnDistance() { return minSpawnDistance; }
     public float getMaxSpawnDistance() { return maxSpawnDistance; }
     public float getMinPickupDistance() { return minPickupDistance; }

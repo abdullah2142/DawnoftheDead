@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id 'org.openjfx.javafxplugin' version '0.0.13'
 }
 
 group 'com.horrorjme'
@@ -15,12 +16,19 @@ java {
 
 application {
     mainClass = 'horrorjme.HorrorGameJME'
+    mainClass = 'horrorjme.GameLauncher'
+}
+
+javafx {
+    version = '17.0.2'
+    modules = ['javafx.controls', 'javafx.fxml']
 }
 
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }  // For Minie
     maven { url 'https://dl.bintray.com/jmonkeyengine/org.jmonkeyengine' }
+    maven { url 'https://mvnrepository.com/artifact/org.jmonkeyengine/jme3-lwjgl3' }
 }
 
 dependencies {
@@ -43,6 +51,8 @@ dependencies {
     implementation 'org.jmonkeyengine:jme3-networking:3.8.1-stable'
     implementation "com.github.stephengold:Minie:9.0.1"
     implementation "org.jmonkeyengine:jme3-blender:3.3.2-stable"     // Blender file support
+    //implementation("org.jmonkeyengine:jme3-lwjgl3-openal:3.8.1-stable")
+
 
 }
 
@@ -64,6 +74,12 @@ tasks.withType(JavaCompile).configureEach {
     options.compilerArgs << '-Xlint:deprecation'
     options.encoding = 'UTF-8'
 }
+
+run {
+    // JVM arguments for JavaFX (if needed)
+    jvmArgs = [
+            '--add-exports', 'javafx.base/com.sun.javafx.runtime=ALL-UNNAMED'
+    ]}
 
 // Configure the run task
 /* run {

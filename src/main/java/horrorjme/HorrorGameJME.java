@@ -37,19 +37,11 @@ import com.jme3.renderer.Camera;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * COMPLETE IMPROVED HorrorGameJME - Full Implementation with Weapon/Pickup System
- *
- * MAJOR IMPROVEMENTS:
- * 1. Player starts UNARMED with no weapon systems initialized
- * 2. PickupSpawner scans map and places weapons/ammo randomly
- * 3. PickupProcessor handles automatic pickup detection
- * 4. Weapon systems initialize only when player finds first weapon
- * 5. Enemy drops create ammo pickups with 30% chance
- * 6. Complete error handling and debug output
+ * COMPLETE UPDATED HorrorGameJME with Timer System and Point Economy
  */
 public class HorrorGameJME extends SimpleApplication {
 
-    // Existing core managers
+    // Core managers
     private GameStateManager gameStateManager;
     private InputHandler inputHandler;
     private MenuSystem menuSystem;
@@ -60,67 +52,50 @@ public class HorrorGameJME extends SimpleApplication {
     private HUDManager hudManager;
     private SkyboxManager skyboxManager;
 
-    // NEW: Pickup system managers
+    // NEW: Timer and Score systems
+    private TimerSystem timerSystem;
+    private ScoreSystem scoreSystem;
+
+    // Pickup system managers
     private PickupSpawner pickupSpawner;
     private PickupProcessor pickupProcessor;
 
-    // Existing physics
+    // Physics
     private BulletAppState bulletAppState;
     private CharacterControl playerControl;
     private RigidBodyControl landscapeControl;
 
-    // Existing game world
+    // Game world
     private Spatial doomMap;
     private DebugNoclipControl debugNoclip;
     private final ConcurrentLinkedQueue<Runnable> sceneCommands = new ConcurrentLinkedQueue<>();
 
-    // Existing post-processing
+    // Post-processing
     private FilterPostProcessor postProcessor;
     private FadeFilter fadeFilter;
     private ColorOverlayFilter noiseFilter;
     private ZombieSpawner zombieSpawner;
     private float noiseTimer = 0f;
 
-    // Existing movement settings
+    // Movement settings
     private static final float MAP_SCALE = 1.50f;
     private static final Vector3f PLAYER_START_POS = new Vector3f(10f, 0f, 20f);
     private static final float MOUSE_SENSITIVITY = 0.5f;
-
-    public static void main(String[] args) {
-        HorrorGameJME app = new HorrorGameJME();
-
-        AppSettings settings = new AppSettings(true);
-        settings.setTitle("Dawn of The Dead - Horror Experience");
-        settings.setResolution(1280, 720);
-        settings.setVSync(true);
-        app.setSettings(settings);
-
-        app.start();
-    }
 
     @Override
     public void simpleInitApp() {
         System.out.println("=== HORROR GAME INITIALIZATION ===");
 
-        // Initialize physics (without debug for cleaner view)
+        removeDefaultESCMapping();
         initializePhysics();
-
-        // Setup lighting (keep the working lighting)
         setupProperLighting();
-
-        // Initialize managers
         initializeManagers();
-
-        // Setup camera and input with smooth settings
         setupCameraAndInput();
-
-        // Show menu
         showMainMenu();
 
         System.out.println("=== INITIALIZATION COMPLETE ===");
     }
 
-    // EXISTING METHODS (unchanged)
     private void processSceneCommands() {
         Runnable command;
         while ((command = sceneCommands.poll()) != null) {
@@ -129,6 +104,13 @@ public class HorrorGameJME extends SimpleApplication {
             } catch (Exception e) {
                 System.err.println("Error executing scene command: " + e.getMessage());
             }
+        }
+    }
+
+    private void removeDefaultESCMapping() {
+        if (inputManager.hasMapping(SimpleApplication.INPUT_MAPPING_EXIT)) {
+            inputManager.deleteMapping(SimpleApplication.INPUT_MAPPING_EXIT);
+            System.out.println("Removed default ESC->exit mapping");
         }
     }
 
@@ -146,30 +128,23 @@ public class HorrorGameJME extends SimpleApplication {
     }
 
     private void setupProperLighting() {
-        // Clear existing lights
         rootNode.getLocalLightList().clear();
-
-        // Enable shadows on root node
         rootNode.setShadowMode(ShadowMode.CastAndReceive);
 
-        // HORROR: Very dark ambient light
         AmbientLight ambient = new AmbientLight();
         ambient.setColor(ColorRGBA.White.mult(0.2f));
         rootNode.addLight(ambient);
 
-        // Main directional light - dimmer for horror
         DirectionalLight sun = new DirectionalLight();
         sun.setDirection(new Vector3f(-0.5f, -0.5f, -0.5f).normalizeLocal());
         sun.setColor(ColorRGBA.White.mult(0.05f));
         rootNode.addLight(sun);
 
-        // Add shadow renderer
         DirectionalLightShadowRenderer dlsr = new DirectionalLightShadowRenderer(assetManager, 2048, 3);
         dlsr.setLight(sun);
         dlsr.setShadowIntensity(0.9f);
         viewPort.addProcessor(dlsr);
 
-        // Minimal fill light
         DirectionalLight fill = new DirectionalLight();
         fill.setDirection(new Vector3f(0.5f, -0.3f, 0.5f).normalizeLocal());
         fill.setColor(ColorRGBA.White.mult(0.1f));
@@ -178,7 +153,6 @@ public class HorrorGameJME extends SimpleApplication {
         System.out.println("Lighting setup complete");
     }
 
-    // UPDATED: Initialize managers with NEW pickup system
     private void initializeManagers() {
         System.out.println("Initializing managers...");
 
@@ -191,13 +165,15 @@ public class HorrorGameJME extends SimpleApplication {
         skyboxManager = new SkyboxManager(assetManager, rootNode);
         zombieSpawner = new ZombieSpawner(assetManager, cam, bulletAppState, entityManager);
 
-        // NEW: Initialize pickup system
-        pickupSpawner = new PickupSpawner(assetManager, audioManager, bulletAppState);
-        // PickupProcessor will be initialized after player is created
+        // NEW: Initialize timer and score systems
+        timerSystem = new TimerSystem();
+        scoreSystem = new ScoreSystem();
 
-        // Initialize audio with NEW pickup sounds
+        // Initialize pickup system
+        pickupSpawner = new PickupSpawner(assetManager, audioManager, bulletAppState);
+
         try {
-            audioManager.initializeHorrorSounds(); // Now includes pickup sounds
+            audioManager.initializeHorrorSounds();
             System.out.println("Audio system initialized successfully");
         } catch (Exception e) {
             System.err.println("Audio initialization failed: " + e.getMessage());
@@ -209,14 +185,10 @@ public class HorrorGameJME extends SimpleApplication {
 
     private void setupCameraAndInput() {
         cam.setFrustumPerspective(75f, (float)cam.getWidth() / cam.getHeight(), 0.1f, 500f);
-
         flyCam.setEnabled(false);
-
         inputHandler = new InputHandler(inputManager, gameStateManager, this);
-
         menuSystem = new MenuSystem(assetManager, guiNode, settings, gameStateManager, this, optionsManager);
         inputHandler.setMenuSystem(menuSystem);
-
         System.out.println("Camera and input setup complete");
     }
 
@@ -225,29 +197,17 @@ public class HorrorGameJME extends SimpleApplication {
         inputHandler.disableMouseLook();
     }
 
-    // UPDATED: Start game without weapon systems
     public void startGame() {
         System.out.println("=== STARTING GAME ===");
 
         gameStateManager.setState(GameStateManager.GameState.PLAYING);
         menuSystem.hide();
 
-        // Load DOOM map
         loadDoomMap();
-
-        // Setup post-processing AFTER map is loaded
         setupPostProcessing();
-
-        // Create physics player (NO weapon systems yet)
         createSmoothPhysicsPlayer();
-
-        // CRITICAL FIX: Setup player systems WITHOUT weapons but WITH game connection
         setupPlayerSystemsWithoutWeapons();
-
-        // NEW: Scan map and spawn pickups
         setupPickupSystem();
-
-        // Final setup
         finishGameStart();
 
         System.out.println("=== GAME START COMPLETE ===");
@@ -258,7 +218,6 @@ public class HorrorGameJME extends SimpleApplication {
 
         try {
             doomMap = assetManager.loadModel("Models/scene.gltf");
-
             if (doomMap == null) {
                 throw new RuntimeException("DOOM map file not found");
             }
@@ -274,7 +233,6 @@ public class HorrorGameJME extends SimpleApplication {
             bulletAppState.getPhysicsSpace().add(landscapeControl);
 
             System.out.println("DOOM map loaded successfully");
-
         } catch (Exception e) {
             System.err.println("Failed to load DOOM map: " + e.getMessage());
             e.printStackTrace();
@@ -379,78 +337,51 @@ public class HorrorGameJME extends SimpleApplication {
         cam.setLocation(startPos.add(0, 0.8f * MAP_SCALE, 0));
     }
 
-    // CRITICAL FIX: Setup player WITHOUT weapon systems initially but WITH proper game connection
     private void setupPlayerSystemsWithoutWeapons() {
         System.out.println("Setting up player systems (without weapons)...");
 
-        // Create player WITHOUT weapon systems (they'll be added when first weapon is picked up)
         player = new Player(cam, rootNode, null, audioManager);
-
-        // CRITICAL FIX: Connect player to game instance for weapon system initialization
         player.setGameInstance(this);
-        System.out.println("Game: Player connected to game instance - " + (player != null ? "SUCCESS" : "FAILED"));
 
         inputHandler.setPlayer(player);
         inputHandler.setPlayerControl(playerControl);
         debugNoclip.setPlayer(player);
 
-        // Apply options
         optionsManager.applySettings(player, audioManager);
 
-        System.out.println("Game: Player systems setup complete (weapons will be initialized on first pickup)");
+        System.out.println("Player systems setup complete (weapons will be initialized on first pickup)");
     }
 
-    // NEW: Setup pickup system after map is loaded
     private void setupPickupSystem() {
         System.out.println("=== SETTING UP PICKUP SYSTEM ===");
 
-        // Configure spawn settings (adjust these as needed)
-        pickupSpawner.applySpawnPreset(PickupSpawner.SpawnPreset.NORMAL_RESOURCES); //NORMAL_RESOURCES
+        pickupSpawner.applySpawnPreset(PickupSpawner.SpawnPreset.NORMAL_RESOURCES);
 
-        // Scan the map for valid spawn points
         Vector3f playerStart = PLAYER_START_POS.mult(MAP_SCALE);
         pickupSpawner.scanMapForSpawnPoints(doomMap, playerStart);
-
-        // Spawn weapons and ammo randomly throughout the map
         pickupSpawner.spawnAllPickups(entityManager);
 
-        // Initialize pickup processor for automatic pickup detection
         pickupProcessor = new PickupProcessor(entityManager, player, hudManager);
+        pickupProcessor.setScoreSystem(scoreSystem);
 
-        // Print spawn statistics
         System.out.println(pickupSpawner.getSpawnStatistics());
         System.out.println("=== PICKUP SYSTEM SETUP COMPLETE ===");
     }
 
-    // CRITICAL FIX: Method called when player picks up their first weapon
     public void initializePlayerWeaponSystems(WeaponType firstWeapon) {
         System.out.println("=== INITIALIZING WEAPON SYSTEMS ===");
-        System.out.println("Game: Initializing weapon systems for first weapon: " + firstWeapon.displayName);
+        System.out.println("Initializing weapon systems for first weapon: " + firstWeapon.displayName);
 
         try {
-            // Create weapon animator
             ModernWeaponAnimator weaponAnimator = new ModernWeaponAnimator(
                     assetManager, guiNode, settings.getWidth(), settings.getHeight()
             );
 
-          /**  // Configure weapon position and motion
-            Vector3f weaponScreenPos = new Vector3f(
-                    settings.getWidth() * 0.3f,
-                    settings.getHeight() * -0.02f,
-                    0
-            );
-            float weaponScale = Math.min(settings.getWidth(), settings.getHeight()) / 120f; **/
-
-            //weaponAnimator.setWeaponPosition(weaponScreenPos);
-            //weaponAnimator.setWeaponScale(weaponScale);
             weaponAnimator.setProceduralMotion(true);
             weaponAnimator.setMouseSwayIntensity(150f);
             weaponAnimator.setMouseSwayDecay(0.88f);
             weaponAnimator.setMouseSwayLimits(250f, 250f);
 
-            System.out.println("Game: Weapon animator created and configured");
-
-            // Create weapon effects manager
             WeaponEffectsManager weaponEffectsManager = new WeaponEffectsManager(
                     assetManager, rootNode, guiNode, cam, bulletAppState, entityManager
             );
@@ -458,24 +389,15 @@ public class HorrorGameJME extends SimpleApplication {
             weaponEffectsManager.setWeaponOffset(1f, 0.55f, 0f);
             weaponEffectsManager.enableWeaponCameraDebug(true);
 
-            System.out.println("Game: Weapon effects manager created");
-
-            // Create 3D muzzle flash system
             ModelBasedMuzzleFlash muzzleFlashSystem = new ModelBasedMuzzleFlash(rootNode, cam);
 
-            System.out.println("Game: Muzzle flash system created");
-
-            // Connect all systems to player
             player.setWeaponAnimator(weaponAnimator);
             player.setWeaponEffectsManager(weaponEffectsManager);
             player.setMuzzleFlashSystem(muzzleFlashSystem);
 
-            System.out.println("Game: All weapon systems connected to player");
-            System.out.println("Game: Weapon systems initialization complete!");
-            System.out.println("===========================================");
-
+            System.out.println("Weapon systems initialization complete!");
         } catch (Exception e) {
-            System.err.println("Game: CRITICAL ERROR - Failed to initialize weapon systems: " + e.getMessage());
+            System.err.println("CRITICAL ERROR - Failed to initialize weapon systems: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -488,55 +410,45 @@ public class HorrorGameJME extends SimpleApplication {
             audioManager.playBackgroundMusic("horror_ambient");
         }
 
-        // UPDATED: Spawn zombies with new drop system
         spawnZombiesWithDrops();
+
+        // NEW: Start the survival round
+        timerSystem.startRound();
+        scoreSystem.startNewRound();
+
+        System.out.println("=== SURVIVAL ROUND STARTED ===");
+        System.out.println("Objective: Survive " + (int)(timerSystem.getRoundDuration() / 60) + " minutes!");
+        System.out.println("Starting points: " + scoreSystem.getCurrentPoints());
     }
 
-    // UPDATED: Spawn zombies with new enemy drop system
     private void spawnZombiesWithDrops() {
-        System.out.println("=== SPAWNING ZOMBIES WITH DROP SYSTEM ===");
+        System.out.println("=== SPAWNING ZOMBIES ===");
 
         Vector3f playerStartPos = PLAYER_START_POS.mult(MAP_SCALE);
-
-        // Optional: Only configure if you want to override defaults
-        // zombieSpawner.setZombieCount(15); // Already defaults to 15
-        // zombieSpawner.setSpawnDistanceRange(20f, 80f); // Can customize if needed
-
-        // Print configuration to see what defaults are being used
-        System.out.println(zombieSpawner.getConfigurationSummary());
-
-        // Spawn the zombies using the spawner's default configuration
         zombieSpawner.spawnInitialZombies(playerStartPos);
 
         System.out.println("=== ZOMBIE SPAWNING COMPLETE ===");
     }
 
-    // UPDATED: Process enemy deaths with new drop system
     private void processEnemyDeaths() {
-        // Track which zombies we've already processed to avoid duplicate drops
         for (Entity entity : entityManager.getEntitiesByType(Entity.EntityType.ENEMY)) {
             if (entity instanceof ZombieEnemy) {
                 ZombieEnemy zombie = (ZombieEnemy) entity;
 
-                // FIXED: Process drops when zombie enters DEAD state, not when destroyed
                 if (zombie.getCurrentState() == ZombieEnemy.ZombieState.DEAD && !zombie.hasProcessedDrop()) {
                     System.out.println("Processing death drop for zombie: " + zombie.getEntityId());
 
-                    // Create ammo drop using the DropSystem
-                    DropSystem.processEnemyDeath(zombie, entityManager, assetManager, audioManager);
-
-                    // Mark this zombie as processed to prevent duplicate drops
+                    // NEW: Create drops with score system integration
+                    DropSystem.processEnemyDeath(zombie, entityManager, assetManager, audioManager, scoreSystem);
                     zombie.setDropProcessed(true);
                 }
             }
         }
     }
 
-    // Setup post-processing effects
     private void setupPostProcessing() {
         postProcessor = new FilterPostProcessor(assetManager);
 
-        // Add effects one by one
         FogFilter fog = new FogFilter();
         fog.setFogColor(new ColorRGBA(0.1f, 0.1f, 0.1f, 1.0f));
         fog.setFogDensity(0.5f);
@@ -571,7 +483,6 @@ public class HorrorGameJME extends SimpleApplication {
 
         if (player != null) {
             float healthPercent = player.getHealth() / player.getMaxHealth();
-
             if (healthPercent < 0.3f) {
                 float pulse = FastMath.sin(tpf * 3f) * 0.1f + 0.1f;
             }
@@ -590,7 +501,6 @@ public class HorrorGameJME extends SimpleApplication {
         }
     }
 
-    // Game state management methods
     public void pauseGame() {
         if (gameStateManager.getCurrentState() == GameStateManager.GameState.PLAYING) {
             inputHandler.disableMouseLook();
@@ -616,7 +526,6 @@ public class HorrorGameJME extends SimpleApplication {
         hudManager.hide();
     }
 
-    // UPDATED: Cleanup with pickup system
     private void cleanupGame() {
         System.out.println("Cleaning up game...");
 
@@ -647,7 +556,15 @@ public class HorrorGameJME extends SimpleApplication {
             entityManager.clear();
         }
 
-        // NEW: Cleanup pickup system
+        // NEW: Reset timer and score systems
+        if (timerSystem != null) {
+            timerSystem.reset();
+        }
+
+        if (scoreSystem != null) {
+            scoreSystem.reset();
+        }
+
         if (pickupSpawner != null) {
             pickupSpawner.clearSpawnPoints();
         }
@@ -656,7 +573,6 @@ public class HorrorGameJME extends SimpleApplication {
         System.out.println("Game cleanup complete");
     }
 
-    // UPDATED: Main update loop with pickup processing
     @Override
     public void simpleUpdate(float tpf) {
         processSceneCommands();
@@ -673,21 +589,85 @@ public class HorrorGameJME extends SimpleApplication {
                     player.setPositionOnly(physicsPos);
                 }
                 player.update(tpf);
-                hudManager.updateHUD(player);
+
+                // NEW: Update HUD with timer and score systems
+                updateHUD(tpf);
             }
 
             if (entityManager != null) {
                 entityManager.update(tpf);
                 updateZombieAI();
 
-                // CRITICAL FIX: Process pickup detection every frame
                 if (pickupProcessor != null) {
                     pickupProcessor.update(tpf);
                 }
 
-                // CRITICAL FIX: Process enemy deaths for drops
                 processEnemyDeaths();
             }
+
+            // NEW: Update timer system and handle events
+            if (timerSystem != null) {
+                timerSystem.update(tpf);
+                handleRoundEvents();
+                handleContinuousSpawning();
+            }
+        }
+    }
+
+    private void updateHUD(float tpf) {
+        // Simple HUD update - just pass all systems
+        if (hudManager != null) {
+            if (timerSystem != null && scoreSystem != null) {
+                // Use updated HUD method with all systems
+                updateHUDWithSystems(tpf);
+            } else {
+                // Fallback to basic HUD
+                hudManager.updateHUD(player, tpf);
+            }
+        }
+    }
+
+    private void updateHUDWithSystems(float tpf) {
+        // FIXED: Now properly pass timer and score systems to HUD
+        if (hudManager != null) {
+            hudManager.updateHUD(player, timerSystem, scoreSystem, tpf);
+        }
+    }
+
+
+
+    private void handleRoundEvents() {
+        if (timerSystem.isRoundCompleted()) {
+            int bonusPoints = 50;
+            scoreSystem.awardBonusPoints(bonusPoints, "Round " + timerSystem.getCurrentRound() + " completion");
+
+            // NEW: Show round completion in HUD
+            if (hudManager != null) {
+                hudManager.showRoundComplete(timerSystem.getCurrentRound(), bonusPoints);
+            }
+
+            System.out.println("=== ROUND " + timerSystem.getCurrentRound() + " COMPLETE ===");
+        }
+
+        if (player != null && player.isDead() && timerSystem.getCurrentPhase() != TimerSystem.GamePhase.GAME_OVER) {
+            timerSystem.playerDied();
+
+            // NEW: Show game over in HUD
+            if (hudManager != null) {
+                hudManager.showGameOver(timerSystem.getCurrentRound(),
+                        timerSystem.getCurrentTime(),
+                        scoreSystem.getTotalKills());
+            }
+
+            System.out.println("=== GAME OVER ===");
+        }
+    }
+
+    private void handleContinuousSpawning() {
+        if (timerSystem.shouldSpawnEnemy() && player != null) {
+            Vector3f playerPos = player.getPosition();
+            zombieSpawner.spawnAdditionalZombies(playerPos, 1);
+            System.out.println("Spawned additional zombie - Round time: " + timerSystem.getFormattedCurrentTime());
         }
     }
 
@@ -707,89 +687,6 @@ public class HorrorGameJME extends SimpleApplication {
         // No custom rendering needed
     }
 
-    // NEW: Debug method to check weapon system status
-    public void debugWeaponSystem() {
-        System.out.println("=== WEAPON SYSTEM DEBUG ===");
-
-        if (player != null) {
-            System.out.println(player.getWeaponSystemsStatus());
-        } else {
-            System.out.println("Player is null!");
-        }
-
-        // Check if pickup system is working
-        if (pickupProcessor != null) {
-            System.out.println("Pickup Processor: Connected");
-        } else {
-            System.out.println("Pickup Processor: Missing");
-        }
-
-        if (pickupSpawner != null) {
-            System.out.println("Pickup Spawner: Connected");
-            System.out.println(pickupSpawner.getSpawnStatistics());
-        } else {
-            System.out.println("Pickup Spawner: Missing");
-        }
-
-        // Debug entity counts
-        if (entityManager != null) {
-            System.out.println("Total Entities: " + entityManager.getEntityCount());
-            System.out.println("Pickups: " + entityManager.getEntityCount(Entity.EntityType.PICKUP));
-            System.out.println("Enemies: " + entityManager.getEntityCount(Entity.EntityType.ENEMY));
-        }
-
-        System.out.println("============================");
-    }
-
-    // NEW: Debug method for available textures
-    public void debugAvailableTextures() {
-        System.out.println("=== CHECKING AVAILABLE TEXTURES ===");
-
-        String[] testPaths = {
-                "Interface/Logo/Monkey.jpg",
-                "Common/Textures/MissingTexture.png",
-                "Textures/Terrain/splat/grass.jpg",
-                "Textures/Weapons/sten_frame_000.png",
-                "Textures/Pickups/weapon_sten_gun.png"
-        };
-
-        for (String path : testPaths) {
-            try {
-                assetManager.loadTexture(path);
-                System.out.println("✓ Available: " + path);
-            } catch (Exception e) {
-                System.out.println("✗ Not found: " + path);
-            }
-        }
-        System.out.println("====================================");
-    }
-
-    // NEW: Manual weapon spawn for testing
-    public void spawnTestWeapon() {
-        if (entityManager != null && assetManager != null && audioManager != null) {
-            Vector3f playerPos = player != null ? player.getPosition() : PLAYER_START_POS.mult(MAP_SCALE);
-            Vector3f spawnPos = playerPos.add(2f, 0.5f, 0f);
-
-            WeaponPickup testWeapon = new WeaponPickup(spawnPos, WeaponType.STEN_GUN, assetManager, audioManager);
-            entityManager.addEntity(testWeapon);
-
-            System.out.println("Spawned test weapon at: " + spawnPos);
-        }
-    }
-
-    // NEW: Manual ammo spawn for testing
-    public void spawnTestAmmo() {
-        if (entityManager != null && assetManager != null && audioManager != null) {
-            Vector3f playerPos = player != null ? player.getPosition() : PLAYER_START_POS.mult(MAP_SCALE);
-            Vector3f spawnPos = playerPos.add(-2f, 0.5f, 0f);
-
-            AmmoPickup testAmmo = new AmmoPickup(spawnPos, AmmoType.SMG_9MM, assetManager, audioManager);
-            entityManager.addEntity(testAmmo);
-
-            System.out.println("Spawned test ammo at: " + spawnPos);
-        }
-    }
-
     @Override
     public void destroy() {
         System.out.println("Destroying application...");
@@ -807,19 +704,13 @@ public class HorrorGameJME extends SimpleApplication {
         super.destroy();
     }
 
-    // NEW: Public getter methods for debugging
+    // Public getters for debugging
     public Player getPlayer() { return player; }
     public EntityManager getEntityManager() { return entityManager; }
+    public TimerSystem getTimerSystem() { return timerSystem; }
+    public ScoreSystem getScoreSystem() { return scoreSystem; }
     public PickupSpawner getPickupSpawner() { return pickupSpawner; }
     public PickupProcessor getPickupProcessor() { return pickupProcessor; }
     public AudioManager getAudioManager() { return audioManager; }
     public GameStateManager getGameStateManager() { return gameStateManager; }
-
-    // NEW: Configuration methods
-    public void setPickupSpawnPreset(PickupSpawner.SpawnPreset preset) {
-        if (pickupSpawner != null) {
-            pickupSpawner.applySpawnPreset(preset);
-            System.out.println("Applied pickup spawn preset: " + preset);
-        }
-    }
 }

@@ -34,13 +34,13 @@ public class BulletTracer extends Entity {
     private boolean useRaycastCollision = true;
 
     // Visual properties
-    private static final float BULLET_LENGTH = 0.15f;
-    private static final float BULLET_RADIUS = 0.05f;  // INCREASED: Better collision detection
+    private static final float BULLET_LENGTH = 0.03f;
+    private static final float BULLET_RADIUS = 0.03f;  // INCREASED: Better collision detection
 
     public BulletTracer(Vector3f startPosition, Vector3f direction, AssetManager assetManager) {
         super(EntityType.DECORATION, startPosition);
         this.assetManager = assetManager;
-        this.boundingRadius = BULLET_RADIUS * 2f; // INCREASED: Better collision detection
+        this.boundingRadius = BULLET_RADIUS * 1f; // INCREASED: Better collision detection
         this.previousPosition = startPosition.clone(); // ADDED: Track previous position
 
         // Normalize direction and set bullet velocity
@@ -57,7 +57,7 @@ public class BulletTracer extends Entity {
     @Override
     public void initializeModel() {
         // Create a small cylinder for the bullet tracer
-        Cylinder bulletCylinder = new Cylinder(4, 8, BULLET_RADIUS, BULLET_LENGTH, true);
+        Cylinder bulletCylinder = new Cylinder(2, 3, BULLET_RADIUS, BULLET_LENGTH, true);
         model = new Geometry("BulletTracer_" + entityId, bulletCylinder);
 
         // Create glowing bullet material

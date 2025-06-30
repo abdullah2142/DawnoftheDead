@@ -10,8 +10,8 @@ import com.jme3.renderer.Camera;
 import com.jme3.math.FastMath;
 
 /**
- * Enhanced InputHandler with proper mouse delta tracking for weapon sway AND lighting controls
- * COMPLETE VERSION with weapon switching and debug keys
+ * FIXED InputHandler - Menu system now works properly
+ * FIXED: Removed dual ESC mapping that was causing menu conflicts
  */
 public class InputHandler implements ActionListener, AnalogListener {
 
@@ -47,6 +47,7 @@ public class InputHandler implements ActionListener, AnalogListener {
     private float currentMouseDeltaX = 0f;
     private float currentMouseDeltaY = 0f;
     private float mouseSmoothing = 0.85f; // How much previous deltas affect current (0.0 = no smoothing, 0.9 = heavy smoothing)
+    private boolean hasInitializedRotation = false; // NEW: Track if rotation was set
 
     public InputHandler(InputManager inputManager, GameStateManager stateManager, HorrorGameJME game) {
         this.inputManager = inputManager;
@@ -90,26 +91,20 @@ public class InputHandler implements ActionListener, AnalogListener {
         inputManager.addMapping("Fire", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
         inputManager.addMapping("Reload", new KeyTrigger(KeyInput.KEY_R));
 
-        // NEW: Weapon switching controls
+        // Weapon switching controls
         inputManager.addMapping("Weapon1", new KeyTrigger(KeyInput.KEY_1));
         inputManager.addMapping("Weapon2", new KeyTrigger(KeyInput.KEY_2));
         inputManager.addMapping("Weapon3", new KeyTrigger(KeyInput.KEY_3));
-       // inputManager.addMapping("WeaponNext", new MouseButtonTrigger(MouseInput.BUTTON_WHEEL_UP));
-      //  inputManager.addMapping("WeaponPrev", new MouseButtonTrigger(MouseInput.BUTTON_WHEEL_DOWN));
 
-        // Menu controls
+        // Menu controls - FIXED: Only use arrow keys for menu navigation
         inputManager.addMapping("MenuUp", new KeyTrigger(KeyInput.KEY_UP));
         inputManager.addMapping("MenuDown", new KeyTrigger(KeyInput.KEY_DOWN));
         inputManager.addMapping("MenuSelect", new KeyTrigger(KeyInput.KEY_RETURN));
-        inputManager.addMapping("MenuBack", new KeyTrigger(KeyInput.KEY_ESCAPE));
+
+        // FIXED: Only ONE ESC mapping - remove the dual mapping
         inputManager.addMapping("Escape", new KeyTrigger(KeyInput.KEY_ESCAPE));
 
-        // LIGHTING CONTROLS - Simplified
-        inputManager.addMapping("ToggleShadows", new KeyTrigger(KeyInput.KEY_F9));
-        inputManager.addMapping("Lightning", new KeyTrigger(KeyInput.KEY_F10));
-        inputManager.addMapping("ToggleFlicker", new KeyTrigger(KeyInput.KEY_F11));
-
-        // NEW: Debug keys for testing revolver
+        // Debug keys for testing
         inputManager.addMapping("SpawnRevolver", new KeyTrigger(KeyInput.KEY_F5));
         inputManager.addMapping("GiveRevolver", new KeyTrigger(KeyInput.KEY_F6));
         inputManager.addMapping("TestRevolver", new KeyTrigger(KeyInput.KEY_F7));
@@ -120,21 +115,19 @@ public class InputHandler implements ActionListener, AnalogListener {
         inputManager.addMapping("MouseLookY", new MouseAxisTrigger(MouseInput.AXIS_Y, false));
         inputManager.addMapping("MouseLookY-", new MouseAxisTrigger(MouseInput.AXIS_Y, true));
 
-        // Add listeners
+        // Add listeners - FIXED: Remove "MenuBack" from listener list
         inputManager.addListener(this,
                 // Movement
                 "MoveForward", "MoveBackward", "StrafeLeft", "StrafeRight",
                 "Jump", "Sprint", "ToggleTorch",
                 // Weapons
-                "Fire", "Reload", "Weapon1", "Weapon2", "Weapon3", "WeaponNext", "WeaponPrev",
-                // Menu
-                "MenuUp", "MenuDown", "MenuSelect", "MenuBack", "Escape",
+                "Fire", "Reload", "Weapon1", "Weapon2", "Weapon3",
+                // Menu - FIXED: Only "Escape", removed "MenuBack"
+                "MenuUp", "MenuDown", "MenuSelect", "Escape",
                 // Mouse look
                 "MouseLookX", "MouseLookX-", "MouseLookY", "MouseLookY-",
                 // Debug keys
-                "SpawnRevolver", "GiveRevolver", "TestRevolver",
-                // LIGHTING CONTROLS - Simplified
-                "ToggleShadows", "Lightning", "ToggleFlicker"
+                "SpawnRevolver", "GiveRevolver", "TestRevolver"
         );
     }
 
@@ -142,12 +135,20 @@ public class InputHandler implements ActionListener, AnalogListener {
         mouseEnabled = true;
         inputManager.setCursorVisible(false);
 
-        // Initialize camera rotation tracking from current camera
-        Vector3f direction = cam.getDirection();
-        yaw = (float) Math.atan2(-direction.x, -direction.z);
-        pitch = (float) Math.asin(direction.y);
+        // FIXED: Only initialize rotation tracking on FIRST enable, not every time
+        if (!hasInitializedRotation) {
+            // Initialize camera rotation tracking from current camera (FIRST TIME ONLY)
+            Vector3f direction = cam.getDirection();
+            yaw = (float) Math.atan2(-direction.x, -direction.z);
+            pitch = (float) Math.asin(direction.y);
+            hasInitializedRotation = true;
+            System.out.println("Camera rotation initialized: yaw=" + yaw + ", pitch=" + pitch);
+        } else {
+            // KEEP EXISTING rotation values - don't recalculate
+            System.out.println("Camera rotation preserved: yaw=" + yaw + ", pitch=" + pitch);
+        }
 
-        // Reset mouse deltas
+        // Reset mouse deltas (this is fine)
         currentMouseDeltaX = 0f;
         currentMouseDeltaY = 0f;
     }
@@ -156,13 +157,23 @@ public class InputHandler implements ActionListener, AnalogListener {
         mouseEnabled = false;
         inputManager.setCursorVisible(true);
 
-        // Reset mouse deltas when disabling
+        // FIXED: DON'T reset rotation values - preserve them for resume
+        // Just reset mouse deltas
         currentMouseDeltaX = 0f;
         currentMouseDeltaY = 0f;
+
+        // The yaw and pitch values are preserved for when we resume
+        System.out.println("Mouse look disabled, rotation preserved");
     }
 
     @Override
     public void onAction(String name, boolean isPressed, float tpf) {
+        // FIXED: Handle ESC properly based on current game state
+        if (name.equals("Escape") && !isPressed) {
+            handleEscapeKey();
+            return;
+        }
+
         switch (stateManager.getCurrentState()) {
             case MAIN_MENU:
             case OPTIONS_MENU:
@@ -173,6 +184,41 @@ public class InputHandler implements ActionListener, AnalogListener {
                 break;
             case PAUSED:
                 handlePausedInput(name, isPressed);
+                break;
+        }
+    }
+
+    /**
+     * FIXED: Centralized ESC key handling based on game state
+     */
+    private void handleEscapeKey() {
+        switch (stateManager.getCurrentState()) {
+            case PLAYING:
+                // In game - pause
+                game.pauseGame();
+                System.out.println("Game paused via ESC");
+                break;
+
+            case PAUSED:
+                // In pause menu - resume
+                game.resumeGame();
+                System.out.println("Game resumed via ESC");
+                break;
+
+            case OPTIONS_MENU:
+                // In options - go back to previous menu
+                if (menuSystem != null) {
+                    menuSystem.handleBack();
+                }
+                break;
+
+            case MAIN_MENU:
+                // In main menu - quit game
+                game.stop();
+                break;
+
+            default:
+                System.out.println("ESC pressed in unknown state: " + stateManager.getCurrentState());
                 break;
         }
     }
@@ -191,20 +237,13 @@ public class InputHandler implements ActionListener, AnalogListener {
                 case "MenuSelect":
                     menuSystem.selectCurrentItem();
                     break;
-                case "MenuBack":
-                case "Escape":
-                    menuSystem.handleBack();
-                    break;
+                // ESC is now handled in handleEscapeKey()
             }
         }
     }
 
     private void handleGameInput(String name, boolean isPressed) {
-        // Handle escape first
-        if (name.equals("Escape") && !isPressed) {
-            game.pauseGame();
-            return;
-        }
+        // ESC is now handled in handleEscapeKey() - removed from here
 
         // Movement controls - Update player movement flags for footstep detection
         switch (name) {
@@ -256,7 +295,7 @@ public class InputHandler implements ActionListener, AnalogListener {
                 }
                 break;
 
-            // NEW: Weapon switching controls
+            // Weapon switching controls
             case "Weapon1":
                 if (!isPressed && player != null) {
                     boolean switched = player.switchWeapon(1);
@@ -281,25 +320,13 @@ public class InputHandler implements ActionListener, AnalogListener {
                     }
                 }
                 break;
-            case "WeaponNext":
-                if (!isPressed && player != null) {
-                    boolean switched = player.switchToNextWeapon();
-                    if (switched) {
-                        System.out.println("Next weapon: " + player.getCurrentWeaponName());
-                    }
+
+            // Debug controls
+            case "SpawnRevolver":
+                if (!isPressed) {
+                    System.out.println("Debug: Spawn revolver requested");
                 }
                 break;
-            case "WeaponPrev":
-                if (!isPressed && player != null) {
-                    boolean switched = player.switchToPreviousWeapon();
-                    if (switched) {
-                        System.out.println("Previous weapon: " + player.getCurrentWeaponName());
-                    }
-                }
-                break;
-
-            // NEW: Debug controls for testing revolver
-
         }
 
         // Update physics movement
@@ -309,8 +336,20 @@ public class InputHandler implements ActionListener, AnalogListener {
     private void handlePausedInput(String name, boolean isPressed) {
         if (!isPressed) return;
 
-        if (name.equals("Escape") || name.equals("MenuBack")) {
-            game.resumeGame();
+        // ESC is now handled in handleEscapeKey() - removed from here
+
+        if (menuSystem != null) {
+            switch (name) {
+                case "MenuUp":
+                    menuSystem.moveSelectionUp();
+                    break;
+                case "MenuDown":
+                    menuSystem.moveSelectionDown();
+                    break;
+                case "MenuSelect":
+                    menuSystem.selectCurrentItem();
+                    break;
+            }
         }
     }
 
@@ -373,7 +412,7 @@ public class InputHandler implements ActionListener, AnalogListener {
         float rawMouseDeltaX = 0f;
         float rawMouseDeltaY = 0f;
 
-        // FIXED MOUSE INVERSION - Corrected axis handling
+        // Mouse look controls
         switch (name) {
             case "MouseLookX":
                 // Moving mouse RIGHT should look RIGHT (positive yaw)
@@ -448,7 +487,7 @@ public class InputHandler implements ActionListener, AnalogListener {
         }
     }
 
-    // ENHANCED: Getters for mouse delta information
+    // Configuration and utility methods (unchanged)
     public float getCurrentMouseDeltaX() {
         return currentMouseDeltaX;
     }
@@ -461,7 +500,6 @@ public class InputHandler implements ActionListener, AnalogListener {
         return mouseSensitivity;
     }
 
-    // Configuration methods
     public void setMoveSpeed(float speed) {
         this.moveSpeed = Math.max(0.05f, Math.min(0.30f, speed));
     }
