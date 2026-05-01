@@ -2,6 +2,8 @@
 
 A first-person horror game built with JMonkeyEngine 3.8.1, featuring atmospheric environments, zombie enemies, weapon systems, and survival gameplay mechanics.
 
+## Gameplay Demo: https://www.linkedin.com/posts/abdullah2142_as-good-a-time-as-any-to-showcase-my-project-ugcPost-7392985446324244480-yRna?utm_source=share&utm_medium=member_desktop&rcm=ACoAACJjwx8BlACQA2GCi0IL2bWcQ-WYG_dvCeU
+
 ## Features
 
 - **3D First-Person Horror Gameplay**: Navigate through dark, atmospheric environments
